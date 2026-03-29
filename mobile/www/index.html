@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src https:; img-src https: data:;">
 <title>Realm</title>
 <style>
 body { background:#09090b; color:#fafafa; font-family:system-ui; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
@@ -11,6 +12,8 @@ h1 { color:#7c3aed; font-size:28px; }
 p { color:#a1a1aa; font-size:14px; margin-top:8px; }
 input { padding:10px; background:#18181b; border:1px solid #27272a; border-radius:8px; color:#fafafa; font-size:14px; width:250px; text-align:center; margin-top:16px; }
 button { padding:10px 20px; background:#7c3aed; color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer; margin-top:10px; }
+.err { color:#ef4444; }
+.lock { color:#22c55e; font-size:12px; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -21,22 +24,53 @@ button { padding:10px 20px; background:#7c3aed; color:#fff; border:none; border-
   <input id="url" type="url" placeholder="https://realm.example.com" value="">
   <br>
   <button onclick="go()">Connecter</button>
-  <p id="err" style="color:#ef4444"></p>
+  <p class="lock" id="lock"></p>
+  <p class="err" id="err"></p>
 </div>
 <script>
   var saved = localStorage.getItem('realm_server');
   if (saved) document.getElementById('url').value = saved;
 
-  async function go() {
-    var url = document.getElementById('url').value.trim().replace(/\/+$/, '');
-    if (!url) return;
+  function validateUrl(raw) {
+    var url = raw.trim().replace(/\/+$/, '');
+    if (!url) return null;
     try {
-      var r = await fetch(url + '/api/info');
+      var parsed = new URL(url);
+      if (parsed.protocol !== 'https:') return null;
+      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return null;
+      return parsed.origin;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  async function go() {
+    var errEl = document.getElementById('err');
+    var lockEl = document.getElementById('lock');
+    errEl.textContent = '';
+    lockEl.textContent = '';
+
+    var url = validateUrl(document.getElementById('url').value);
+    if (!url) {
+      errEl.textContent = 'Adresse invalide. HTTPS obligatoire.';
+      return;
+    }
+
+    try {
+      var controller = new AbortController();
+      var timeout = setTimeout(function() { controller.abort(); }, 8000);
+      var r = await fetch(url + '/api/info', { signal: controller.signal });
+      clearTimeout(timeout);
       if (!r.ok) throw new Error('Serveur non trouvé');
       localStorage.setItem('realm_server', url);
+      lockEl.textContent = 'Connexion sécurisée';
       window.location.href = url;
     } catch(e) {
-      document.getElementById('err').textContent = 'Impossible de se connecter: ' + e.message;
+      if (e.name === 'AbortError') {
+        errEl.textContent = 'Timeout - serveur injoignable';
+      } else {
+        errEl.textContent = 'Impossible de se connecter: ' + e.message;
+      }
     }
   }
 

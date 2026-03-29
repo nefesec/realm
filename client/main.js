@@ -49,11 +49,22 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration:  false,
       webSecurity:      true,
+      sandbox:          true,
     },
   });
 
   win.loadURL(SERVER_URL);
   win.setMenuBarVisibility(false);
+
+  // Security: block external navigation
+  win.webContents.on('will-navigate', (e, url) => {
+    if (!url.startsWith(SERVER_URL)) e.preventDefault();
+  });
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  // Security: restrict permissions
+  win.webContents.session.setPermissionRequestHandler((wc, permission, cb) => {
+    cb(['notifications', 'media'].includes(permission));
+  });
 
   const showTimer = setTimeout(() => win?.show(), 2000);
   win.webContents.once('did-finish-load', () => { clearTimeout(showTimer); win.show(); });
