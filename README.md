@@ -37,6 +37,11 @@ chmod +x Realm.AppImage
 
 On first launch, enter the server address provided by your admin, then create your account.
 
+**Server address:**
+```
+https://naoufel-thinkcentre-m700.tailf9bf1b.ts.net
+```
+
 ---
 
 ## License
