@@ -884,7 +884,7 @@ const ICE = { iceServers: [] };
 
 // ── UTIL ─────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-function x(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function x(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function safeColor(c) { return /^#[0-9a-f]{6}$/i.test(c) ? c : '#7c3aed'; }
 function showToast(msg, dur=3000) { const t=$('toast'); t.textContent=msg; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'), dur); }
 function openModal(id) { $(id).classList.add('on'); }
