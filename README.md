@@ -10,7 +10,7 @@ Go to the [Releases](https://github.com/nefesec/realm/releases) page and downloa
 
 | Platform | File |
 |---|---|
-| Windows | `Realm-Setup.exe` |
+| Windows | `Realm.exe` |
 | Linux | `Realm.AppImage` |
 | Android | `Realm.apk` |
 
@@ -19,7 +19,7 @@ Go to the [Releases](https://github.com/nefesec/realm/releases) page and downloa
 ## Installation
 
 ### Windows
-Run `Realm-Setup.exe` and follow the installer.
+Run `Realm.exe` — no installation required, launches directly.
 
 ### Linux
 ```bash
@@ -28,13 +28,14 @@ chmod +x Realm.AppImage
 ```
 
 ### Android
-Enable installation from unknown sources in your settings, then open `Realm.apk`.
+1. Enable **Install unknown apps** in your Android settings
+2. Open `Realm.apk` and install
 
 ---
 
 ## First launch
 
-On first launch, enter the address of your Realm server to connect.
+On first launch, enter the server address provided by your admin, then create your account.
 
 ---
 
