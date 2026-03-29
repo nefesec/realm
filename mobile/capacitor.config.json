@@ -1,0 +1,12 @@
+{
+  "appId": "com.realm.app",
+  "appName": "Realm",
+  "webDir": "www",
+  "server": {
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

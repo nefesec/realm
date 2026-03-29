@@ -1,0 +1,37 @@
+{
+  "name": "realm-client",
+  "version": "3.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start":       "electron .",
+    "build:win":   "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron":         "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId":       "com.realm.app",
+    "productName": "Realm",
+    "files": [
+      "main.js",
+      "preload.js"
+    ],
+    "extraResources": [],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "icon":   "assets/icon.ico"
+    },
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "icon":   "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick":  true,
+      "perMachine": false,
+      "language":  "1036"
+    }
+  }
+}

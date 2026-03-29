@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vox</string>
+    <string name="title_activity_main">Vox</string>
+    <string name="package_name">com.vox.app</string>
+    <string name="custom_url_scheme">com.vox.app</string>
+</resources>
