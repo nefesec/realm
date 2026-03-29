@@ -46,6 +46,7 @@ body {
 }
 
 /* ── SCROLLBAR GLOBAL ── */
+* { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
@@ -131,19 +132,23 @@ body {
 .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
 
 /* ── LAYOUT ── */
-#app { display: none; height: 100vh; flex-direction: row; }
+#app { display: none; height: 100vh; width: 100vw; flex-direction: row; overflow: hidden; }
 #app.on { display: flex; }
 
 /* ── SERVER BAR ── */
 .srv-bar {
-  width: var(--srv-bar); min-width: var(--srv-bar);
+  width: var(--srv-bar); min-width: var(--srv-bar); max-width: var(--srv-bar);
   background: var(--bg);
   display: flex; flex-direction: column; align-items: center;
   padding: 8px 0; gap: 4px;
   border-right: 1px solid var(--border);
   overflow-y: auto;
+  flex-shrink: 0;
+  height: 100vh;
+  position: relative;
 }
 .srv-bar::-webkit-scrollbar { width: 0; }
+.srv-bar { scrollbar-width: none; }
 .srv-icon {
   width: 42px; height: 42px;
   border-radius: 50%;
@@ -183,11 +188,13 @@ body {
 
 /* ── SIDEBAR ── */
 .sidebar {
-  width: var(--sidebar); min-width: var(--sidebar);
+  width: var(--sidebar); min-width: var(--sidebar); max-width: var(--sidebar);
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
   height: 100vh;
+  flex-shrink: 0;
+  position: relative;
 }
 .s-head {
   padding: 13px 14px;
@@ -307,6 +314,7 @@ body {
   display: flex; align-items: center; gap: 8px;
   flex-shrink: 0;
   background: var(--surface2);
+  margin-top: auto;
 }
 .self-av {
   width: 30px; height: 30px; border-radius: 50%;
@@ -322,7 +330,7 @@ body {
 .logout-btn:hover { color: var(--red); }
 
 /* ── MAIN ── */
-.main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; background: var(--bg); }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; background: var(--bg); overflow: hidden; }
 .chat-head {
   height: 48px; padding: 0 18px;
   border-bottom: 1px solid var(--border);
@@ -766,7 +774,7 @@ body {
 <div id="app">
   <!-- Server bar (far left) -->
   <div class="srv-bar" id="srv-bar">
-    <div class="srv-icon active" style="background:linear-gradient(135deg,var(--accent),#a855f7)" onclick="goGlobal()" title="Chat global" id="srv-global">R</div>
+    <div class="srv-icon active" style="background:linear-gradient(135deg,var(--accent),#a855f7);border-radius:16px;width:44px;height:44px;font-size:18px;font-weight:800" onclick="goHome()" title="Messages priv&eacute;s" id="srv-global">R</div>
     <div class="srv-sep"></div>
     <div id="srv-list"></div>
     <div class="srv-icon srv-add" onclick="openModal('modal-create-server')" title="Cr&eacute;er un serveur">+</div>
@@ -1302,15 +1310,11 @@ function renderSidebar() {
 }
 
 function renderHomeSidebar(scroll) {
-  $('sidebar-title').textContent = 'Realm';
-  $('sidebar-title').style.color = 'var(--accent)';
+  $('sidebar-title').textContent = 'Messages priv\u00e9s';
+  $('sidebar-title').style.color = 'var(--text)';
   let html = '';
 
-  // Global chat
-  const globalUnread = unreadCounts['global'] || 0;
-  html += `<div class="s-item ${view==='global'?'active':''}" onclick="goGlobal()"><span class="ico">#</span><span class="name">Lobby</span>${globalUnread > 0 && view !== 'global' ? `<span class="badge">${globalUnread}</span>` : ''}</div>`;
-
-  // DMs
+  // DMs section first (like Discord)
   html += `<div class="s-label">Messages priv&eacute;s</div>`;
   const partners = Object.keys(dmMsgs).concat(Object.keys(dmUnread)).filter((v,i,a)=>a.indexOf(v)===i);
   if (partners.length === 0) {
@@ -1324,6 +1328,11 @@ function renderHomeSidebar(scroll) {
       ${unread ? `<span class="badge">${unread}</span>` : ''}
     </div>`;
   }
+
+  // Global chat (Lobby) as an item in home sidebar
+  html += `<div class="s-label">Salons</div>`;
+  const globalUnread = unreadCounts['global'] || 0;
+  html += `<div class="s-item ${view==='global'?'active':''}" onclick="goGlobal()"><span class="ico">#</span><span class="name">Lobby</span>${globalUnread > 0 && view !== 'global' ? `<span class="badge">${globalUnread}</span>` : ''}</div>`;
 
   // Online users
   html += `<div class="s-label">En ligne &mdash; ${onlineList.length}</div>`;
@@ -1457,6 +1466,16 @@ function renderServerVoice(serverId, channelId, users) {
 }
 
 // ── VIEWS ────────────────────────────────────────────────────
+function goHome() {
+  // Like Discord: clicking the Home icon goes to the home view (DMs/Lobby)
+  // If already in home view (global or dm), just re-render sidebar
+  if (view === 'global' || view.startsWith('dm:')) {
+    renderSidebar();
+    return;
+  }
+  goGlobal();
+}
+
 function goGlobal() {
   leaveCurrentVoice();
   view = 'global';
