@@ -1070,7 +1070,13 @@ function getServerUnreadTotal(serverId) {
 // ── SOCKET ───────────────────────────────────────────────────
 function initSocket() {
   sock = io({ auth: {} }); // uses cookie
-  sock.on('connect', () => { setDot(true); });
+  sock.on('connect', () => {
+    setDot(true);
+    // Join all server rooms on connect/reconnect
+    for (const srv of servers) {
+      sock.emit('join_server_room', { serverId: srv.id });
+    }
+  });
   sock.on('disconnect', () => setDot(false));
 
   // Online users
