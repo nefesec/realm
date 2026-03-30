@@ -453,6 +453,52 @@ app.post('/api/servers/join', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Erreur serveur.' }); }
 });
 
+// ── STORAGE LIMITS ──────────────────────────────────────────
+const MAX_USER_STORAGE   = 50 * 1024 * 1024;  // 50 MB par utilisateur
+const DB_WARN_SIZE       = 500 * 1024 * 1024;  // alerte admin a 500 MB
+const DB_CRITICAL_SIZE   = 800 * 1024 * 1024;  // bloque uploads a 800 MB
+let dbSizeWarned = false;
+
+function getUserStorage(userId) {
+  const row = db.prepare(`
+    SELECT COALESCE(SUM(size), 0) as total FROM attachments a
+    JOIN messages m ON a.message_id = m.id AND a.message_type = 'global' AND m.user_id = ?
+    UNION ALL
+    SELECT COALESCE(SUM(size), 0) FROM attachments a
+    JOIN private_messages pm ON a.message_id = pm.id AND a.message_type = 'dm' AND pm.from_user_id = ?
+    UNION ALL
+    SELECT COALESCE(SUM(size), 0) FROM attachments a
+    JOIN server_messages sm ON a.message_id = sm.id AND a.message_type = 'server' AND sm.user_id = ?
+  `).all(userId, userId, userId);
+  return row.reduce((sum, r) => sum + r.total, 0);
+}
+
+function checkDbSize() {
+  try {
+    const stat = fs.statSync(path.join(DATA_DIR || __dirname, 'vox.db'));
+    const size = stat.size;
+    if (size >= DB_CRITICAL_SIZE) {
+      notifyAdmins(`DB critique : ${(size / 1024 / 1024).toFixed(0)} MB. Uploads bloques. Nettoyez les anciens fichiers.`);
+      return 'critical';
+    }
+    if (size >= DB_WARN_SIZE && !dbSizeWarned) {
+      dbSizeWarned = true;
+      notifyAdmins(`DB presque pleine : ${(size / 1024 / 1024).toFixed(0)} MB / ${(DB_CRITICAL_SIZE / 1024 / 1024).toFixed(0)} MB. Pensez a nettoyer.`);
+    }
+    if (size < DB_WARN_SIZE) dbSizeWarned = false;
+    return 'ok';
+  } catch { return 'ok'; }
+}
+
+function notifyAdmins(msg) {
+  for (const [sid, u] of onlineUsers.entries()) {
+    if (u.role === 'admin') {
+      io.to(sid).emit('admin_alert', { message: msg });
+    }
+  }
+  console.warn('[storage]', msg);
+}
+
 // ── FILE UPLOAD ──────────────────────────────────────────────
 const uploadLimiter    = rateLimit({ windowMs: 60 * 60_000, max: 20, message: { error: 'Trop de fichiers.' } });
 const mentionsLimiter  = rateLimit({ windowMs: 60_000, max: 30, message: { error: 'Trop de requêtes.' } });
@@ -463,6 +509,15 @@ app.post('/api/upload', requireAuth, uploadLimiter, (req, res, next) => {
       return res.status(400).json({ error: err.message || 'Erreur upload.' });
     }
     if (!req.file) return res.status(400).json({ error: 'Aucun fichier.' });
+
+    // Storage checks
+    if (checkDbSize() === 'critical') return res.status(507).json({ error: 'Stockage serveur plein. Contactez un admin.' });
+    const used = getUserStorage(req.user.id);
+    if (used + req.file.size > MAX_USER_STORAGE) {
+      const usedMB = (used / 1024 / 1024).toFixed(1);
+      const maxMB = (MAX_USER_STORAGE / 1024 / 1024).toFixed(0);
+      return res.status(413).json({ error: `Quota atteint (${usedMB}/${maxMB} MB). Supprimez des fichiers.` });
+    }
 
     try {
       const { type, serverId, channelId, toUsername } = JSON.parse(req.body.context || '{}');
@@ -1255,6 +1310,9 @@ app.use((err, req, res, next) => {
   console.error('[server error]', err.message);
   res.status(500).json({ error: 'Erreur serveur.' });
 });
+
+// ── DB SIZE CHECK (every hour) ────────────────────────────────
+setInterval(() => checkDbSize(), 60 * 60_000).unref();
 
 // ── AUTO BACKUP (startup + every 4 hours) ────────────────────
 try { db.backup(); console.log('[backup] Startup backup OK'); }
