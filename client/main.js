@@ -61,9 +61,13 @@ function createWindow() {
     if (!url.startsWith(SERVER_URL)) e.preventDefault();
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  // Security: restrict permissions
+  // Permissions: allow notifications + microphone/camera
+  const ALLOWED_PERMS = ['notifications', 'media', 'audioCapture', 'microphone'];
   win.webContents.session.setPermissionRequestHandler((wc, permission, cb) => {
-    cb(['notifications', 'media'].includes(permission));
+    cb(ALLOWED_PERMS.includes(permission));
+  });
+  win.webContents.session.setPermissionCheckHandler((wc, permission) => {
+    return ALLOWED_PERMS.includes(permission);
   });
 
   const showTimer = setTimeout(() => win?.show(), 2000);
