@@ -1189,6 +1189,7 @@ function initSocket() {
 
   // Kicked
   sock.on('kicked', ({ reason }) => { alert(reason); location.reload(); });
+  sock.on('admin_alert', ({ message }) => { showToast('[ADMIN] ' + message, 10000); });
 
   // Request desktop notification permission
   if ('Notification' in window && Notification.permission === 'default') {
