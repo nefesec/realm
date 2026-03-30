@@ -81,7 +81,8 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3002;
 const PUBLIC_URL = process.env.PUBLIC_URL || '';
 
-// trust proxy desactive — pas de reverse proxy devant le serveur
+// Trust Tailscale Funnel reverse proxy
+app.set('trust proxy', 1);
 
 // ── MIDDLEWARE ────────────────────────────────────────────────
 app.use((req, res, next) => {
@@ -104,10 +105,11 @@ app.use(helmet({
       defaultSrc:              ["'self'"],
       scriptSrc:               ["'self'", "'unsafe-inline'"],
       scriptSrcAttr:           ["'unsafe-inline'"],
-      styleSrc:                ["'self'", "'unsafe-inline'"],
+      styleSrc:                ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc:                 ["'self'", 'https://fonts.gstatic.com'],
       connectSrc:              ["'self'", 'ws:', 'wss:'],
       imgSrc:                  ["'self'", 'data:', 'blob:'],
-      upgradeInsecureRequests: null, // disable — LAN HTTP, no HTTPS
+      upgradeInsecureRequests: [],
     },
   },
   crossOriginEmbedderPolicy: false,
@@ -135,9 +137,9 @@ const upload = multer({
   },
 });
 
-// Rate limiting
-app.use(rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false }));
-const authLimiter = rateLimit({ windowMs: 15 * 60_000, max: 10, message: { error: 'Trop de tentatives.' } });
+// Rate limiting (strict - exposed to internet via Funnel)
+app.use(rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, legacyHeaders: false }));
+const authLimiter = rateLimit({ windowMs: 15 * 60_000, max: 5, message: { error: 'Trop de tentatives. Reessayez dans 15 min.' } });
 app.use('/auth', authLimiter, authRoutes);
 
 // ── AUTH MIDDLEWARE ───────────────────────────────────────────
