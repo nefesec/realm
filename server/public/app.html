@@ -894,7 +894,10 @@ const EMOJI_LIST = [
 ];
 
 // LAN-only ICE (no external STUN/TURN needed for same-network)
-const ICE = { iceServers: [] };
+const ICE = { iceServers: [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+] };
 
 // ── UTIL ─────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -2300,7 +2303,7 @@ function toggleVoice() {
 
 async function joinGlobalVoice() {
   try {
-    localStr = await navigator.mediaDevices.getUserMedia({ audio: true });
+    localStr = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 } });
     sock.emit('join_voice');
     inVoice = true;
     isMuted = false;
@@ -2331,7 +2334,7 @@ function toggleServerVoice(serverId, channelId) {
 
 async function joinServerVoice(serverId, channelId) {
   try {
-    localStr = await navigator.mediaDevices.getUserMedia({ audio: true });
+    localStr = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 } });
     sock.emit('server_join_voice', { serverId, channelId });
     voiceChannelId = channelId;
     isMuted = false;
