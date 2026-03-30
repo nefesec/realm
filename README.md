@@ -1,14 +1,14 @@
 # Realm
 
-**Private chat application — your server, your data.**
+**Application de chat privee — ton serveur, tes donnees.**
 
 ---
 
-## Download
+## Telecharger
 
-Go to the [Releases](https://github.com/nefesec/realm/releases) page and download the version for your platform:
+Rendez-vous sur la page [Releases](https://github.com/nefesec/realm/releases) et telechargez la version correspondant a votre plateforme :
 
-| Platform | File |
+| Plateforme | Fichier |
 |---|---|
 | Windows | `Realm.exe` |
 | Linux | `Realm.AppImage` |
@@ -19,7 +19,7 @@ Go to the [Releases](https://github.com/nefesec/realm/releases) page and downloa
 ## Installation
 
 ### Windows
-Run `Realm.exe` — no installation required, launches directly.
+Lancez `Realm.exe` — aucune installation requise, se lance directement.
 
 ### Linux
 ```bash
@@ -28,19 +28,22 @@ chmod +x Realm.AppImage
 ```
 
 ### Android
-1. Enable **Install unknown apps** in your Android settings
-2. Open `Realm.apk` and install
+1. Activez **Installer des applis inconnues** dans les parametres Android
+2. Ouvrez `Realm.apk` et installez
 
 ---
 
-## First launch
+## Premier lancement
 
-On first launch, enter the server address provided by your admin, then create your account.
+Au premier lancement, entrez l'adresse du serveur puis creez votre compte.
 
-The server address will be provided by the admin privately.
+L'adresse du serveur est communiquee en prive. Pour l'obtenir, contactez :
+
+- **Email** : berthenaoufel21@gmail.com
+- **Telephone** : +33 06 65 93 97 89
 
 ---
 
-## License
+## Licence
 
 MIT
