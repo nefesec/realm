@@ -1,10 +1,9 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain, session } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 
 // Linux: enable media device access
 if (process.platform === 'linux') {
-  app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
   app.commandLine.appendSwitch('enable-features', 'AudioContextAutoplayByUserActivation');
 }
 const http = require('http');
@@ -67,13 +66,6 @@ function createWindow() {
     if (!url.startsWith(SERVER_URL)) e.preventDefault();
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  // Permissions: allow all media-related permissions for voice chat
-  win.webContents.session.setPermissionRequestHandler((wc, permission, cb) => {
-    cb(true);
-  });
-  win.webContents.session.setPermissionCheckHandler(() => {
-    return true;
-  });
 
   const showTimer = setTimeout(() => win?.show(), 2000);
   win.webContents.once('did-finish-load', () => { clearTimeout(showTimer); win.show(); });
@@ -135,6 +127,10 @@ app.on('certificate-error', (event, webContents, url, error, cert, callback) => 
 
 // ── START ────────────────────────────────────────────────────
 app.whenReady().then(() => {
+  // Grant media permissions before window creation
+  session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => cb(true));
+  session.defaultSession.setPermissionCheckHandler(() => true);
+  session.defaultSession.setDevicePermissionHandler(() => true);
   createTray();
   createWindow();
 });
