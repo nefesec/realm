@@ -81,8 +81,7 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3002;
 const PUBLIC_URL = process.env.PUBLIC_URL || '';
 
-// Trust Tailscale Funnel / reverse proxy
-app.set('trust proxy', 1);
+// trust proxy desactive — pas de reverse proxy devant le serveur
 
 // ── MIDDLEWARE ────────────────────────────────────────────────
 app.use((req, res, next) => {
@@ -868,10 +867,10 @@ io.on('connection', (socket) => {
     const content = typeof data === 'string' ? data : data?.content;
     const replyTo = (typeof data === 'object' && isInt(data?.replyTo)) ? data.replyTo : null;
     if (!content?.trim() || content.length > 2000) return;
-    if (!rl.msg(socket.id)) return;
+    if (!rl.msg(userId)) return;
     const now = Date.now();
-    if (now - (cooldowns.get(socket.id) || 0) < 400) return;
-    cooldowns.set(socket.id, now);
+    if (now - (cooldowns.get(userId) || 0) < 400) return;
+    cooldowns.set(userId, now);
 
     const clean = content.trim();
     try {
@@ -913,7 +912,7 @@ io.on('connection', (socket) => {
 
   socket.on('edit_message', ({ id, content }) => {
     if (!isInt(id) || !content?.trim() || content.length > 2000) return;
-    if (!rl.edit(socket.id)) return;
+    if (!rl.edit(userId)) return;
     const clean = content.trim();
     try {
       const edited_at = new Date().toISOString();
@@ -926,7 +925,7 @@ io.on('connection', (socket) => {
 
   socket.on('delete_message', ({ id }) => {
     if (!isInt(id)) return;
-    if (!rl.del(socket.id)) return;
+    if (!rl.del(userId)) return;
     try {
       const isAdmin = role === 'admin';
       const stmt = isAdmin
@@ -941,7 +940,7 @@ io.on('connection', (socket) => {
   socket.on('private_message', ({ to, content }) => {
     if (!to || typeof to !== 'string' || to.length > 20) return;
     if (!content?.trim() || content.length > 2000) return;
-    if (!rl.pm(socket.id)) return;
+    if (!rl.pm(userId)) return;
 
     const toClean = to.trim();
     if (toClean.toLowerCase() === username.toLowerCase()) return;
@@ -975,12 +974,12 @@ io.on('connection', (socket) => {
   });
 
   // ── TYPING ──
-  socket.on('typing',      () => { if (rl.typing(socket.id)) socket.broadcast.emit('user_typing', username); });
+  socket.on('typing',      () => { if (rl.typing(userId)) socket.broadcast.emit('user_typing', username); });
   socket.on('stop_typing', () => socket.broadcast.emit('user_stop_typing', username));
 
   // ── GLOBAL VOICE ──
   socket.on('join_voice', () => {
-    if (!rl.voice(socket.id)) return;
+    if (!rl.voice(userId)) return;
     voiceUsers.set(username, { username, avatar_color });
     socket.join('voice');
     io.emit('voice_users', [...voiceUsers.values()]);
@@ -996,15 +995,15 @@ io.on('connection', (socket) => {
 
   // WebRTC signaling (global)
   socket.on('webrtc_offer',  ({ to, offer })     => {
-    if (typeof to !== 'string' || !onlineUsers.has(to) || !rl.offer(socket.id)) return;
+    if (typeof to !== 'string' || !onlineUsers.has(to) || !rl.offer(userId)) return;
     io.to(to).emit('webrtc_offer', { from: socket.id, username, offer });
   });
   socket.on('webrtc_answer', ({ to, answer })    => {
-    if (typeof to !== 'string' || !onlineUsers.has(to) || !rl.answer(socket.id)) return;
+    if (typeof to !== 'string' || !onlineUsers.has(to) || !rl.answer(userId)) return;
     io.to(to).emit('webrtc_answer', { from: socket.id, answer });
   });
   socket.on('webrtc_ice',    ({ to, candidate }) => {
-    if (typeof to !== 'string' || !onlineUsers.has(to) || !rl.ice(socket.id)) return;
+    if (typeof to !== 'string' || !onlineUsers.has(to) || !rl.ice(userId)) return;
     io.to(to).emit('webrtc_ice', { from: socket.id, candidate });
   });
 
@@ -1022,7 +1021,7 @@ io.on('connection', (socket) => {
   // ── SERVER MESSAGES (CHANNEL-BASED) ──
   socket.on('server_message', ({ serverId, channelId, content, replyTo }) => {
     if (!isInt(serverId) || !isInt(channelId) || !content?.trim() || content.length > 2000) return;
-    if (!rl.msg(socket.id)) return;
+    if (!rl.msg(userId)) return;
     const m = db.prepare('SELECT 1 FROM server_members WHERE server_id = ? AND user_id = ?').get(serverId, userId);
     if (!m) return;
     // Verify channel belongs to server
@@ -1069,7 +1068,7 @@ io.on('connection', (socket) => {
 
   socket.on('server_edit_message', ({ serverId, id, content }) => {
     if (!isInt(serverId) || !isInt(id) || !content?.trim() || content.length > 2000) return;
-    if (!rl.edit(socket.id)) return;
+    if (!rl.edit(userId)) return;
     try {
       const edited_at = new Date().toISOString();
       const clean = content.trim();
@@ -1082,7 +1081,7 @@ io.on('connection', (socket) => {
 
   socket.on('server_delete_message', ({ serverId, id }) => {
     if (!isInt(serverId) || !isInt(id)) return;
-    if (!rl.del(socket.id)) return;
+    if (!rl.del(userId)) return;
     try {
       const isAdmin = role === 'admin';
       const stmt = isAdmin
@@ -1095,7 +1094,7 @@ io.on('connection', (socket) => {
 
   // ── SERVER VOICE (PER CHANNEL) ──
   socket.on('server_join_voice', ({ serverId, channelId }) => {
-    if (!isInt(serverId) || !isInt(channelId) || !rl.voice(socket.id)) return;
+    if (!isInt(serverId) || !isInt(channelId) || !rl.voice(userId)) return;
     const m = db.prepare('SELECT 1 FROM server_members WHERE server_id = ? AND user_id = ?').get(serverId, userId);
     if (!m) return;
     const ch = db.prepare("SELECT id FROM channels WHERE id = ? AND server_id = ? AND type = 'voice'").get(channelId, serverId);
@@ -1120,15 +1119,15 @@ io.on('connection', (socket) => {
 
   // Server WebRTC signaling
   socket.on('server_webrtc_offer',  ({ serverId, to, offer })     => {
-    if (!isInt(serverId) || typeof to !== 'string' || !onlineUsers.has(to) || !rl.offer(socket.id)) return;
+    if (!isInt(serverId) || typeof to !== 'string' || !onlineUsers.has(to) || !rl.offer(userId)) return;
     io.to(to).emit('server_webrtc_offer', { serverId, from: socket.id, username, offer });
   });
   socket.on('server_webrtc_answer', ({ serverId, to, answer })    => {
-    if (!isInt(serverId) || typeof to !== 'string' || !onlineUsers.has(to) || !rl.answer(socket.id)) return;
+    if (!isInt(serverId) || typeof to !== 'string' || !onlineUsers.has(to) || !rl.answer(userId)) return;
     io.to(to).emit('server_webrtc_answer', { serverId, from: socket.id, answer });
   });
   socket.on('server_webrtc_ice',    ({ serverId, to, candidate }) => {
-    if (!isInt(serverId) || typeof to !== 'string' || !onlineUsers.has(to) || !rl.ice(socket.id)) return;
+    if (!isInt(serverId) || typeof to !== 'string' || !onlineUsers.has(to) || !rl.ice(userId)) return;
     io.to(to).emit('server_webrtc_ice', { serverId, from: socket.id, candidate });
   });
 
@@ -1137,7 +1136,7 @@ io.on('connection', (socket) => {
     if (!isInt(messageId) || !emoji || typeof emoji !== 'string') return;
     // Accepter uniquement les vrais emojis (pas de guillemets ou code injectables)
     if (!/^[\p{Emoji_Presentation}\p{Extended_Pictographic}][\p{Emoji_Modifier}\uFE0F\u20E3]?[\u200D\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F]*$/u.test(emoji)) return;
-    if (!rl.reaction(socket.id)) return;
+    if (!rl.reaction(userId)) return;
     messageType = messageType || 'global';
     if (!['global', 'server', 'dm'].includes(messageType)) return;
 
@@ -1199,7 +1198,7 @@ io.on('connection', (socket) => {
   // ── READ POSITION (via socket for real-time) ──
   socket.on('update_read_position', ({ context, lastReadId }) => {
     if (!context || typeof context !== 'string' || !Number.isInteger(lastReadId)) return;
-    if (!rl.readpos(socket.id)) return;
+    if (!rl.readpos(userId)) return;
     try {
       db.prepare(`
         INSERT INTO read_positions (user_id, context, last_read_id, updated_at)
@@ -1223,8 +1222,8 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     onlineUsers.delete(socket.id);
     voiceUsers.delete(username);
-    cooldowns.delete(socket.id);
-    Object.values(rl).forEach(l => l.clear(socket.id));
+    cooldowns.delete(userId);
+    Object.values(rl).forEach(l => l.clear(userId));
     io.emit('online_users', uniqueUsers());
     io.emit('voice_users', [...voiceUsers.values()]);
     socket.to('voice').emit('voice_peer_left', { socketId: socket.id });
@@ -1257,11 +1256,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erreur serveur.' });
 });
 
-// ── AUTO BACKUP (every 6 hours) ──────────────────────────────
+// ── AUTO BACKUP (startup + every 4 hours) ────────────────────
+try { db.backup(); console.log('[backup] Startup backup OK'); }
+catch (e) { console.error('[backup]', e.message); }
 setInterval(() => {
   try { db.backup(); console.log('[backup] Auto-backup OK'); }
   catch (e) { console.error('[backup]', e.message); }
-}, 6 * 60 * 60_000).unref();
+}, 4 * 60 * 60_000).unref();
 
 // ── START ─────────────────────────────────────────────────────
 const HOST = '0.0.0.0';
