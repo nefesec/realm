@@ -1083,9 +1083,10 @@ function initSocket() {
 
   // Global messages
   sock.on('new_message', m => {
+    globalMsgs.push(m);
+    globalLastId = Math.max(globalLastId, m.id);
     if (view === 'global') {
       appendMsg(m);
-      globalLastId = Math.max(globalLastId, m.id);
       scrollBot();
       updateReadPosition();
     } else {
@@ -1551,8 +1552,7 @@ function openChannel(serverId, channelId) {
   $('ch-ico').textContent = '#';
   $('ch-name').textContent = `${srv.name} / ${ch.name}`;
   $('ch-sub').textContent = '';
-  const isOwner = srv.owner_id === me.id || myRole === 'admin';
-  $('ch-actions').innerHTML = (isOwner ? `<button onclick="generateInvite(${serverId})">Inviter</button>` : '') + `<button onclick="toggleSearch()">&#x1F50D; Rechercher</button>`;
+  $('ch-actions').innerHTML = `<button onclick="generateInvite(${serverId})">Inviter</button><button onclick="toggleSearch()">&#x1F50D; Rechercher</button>`;
   cancelReply();
   closeSearchPanel();
   unreadCounts[`channel:${channelId}`] = 0;
@@ -1576,7 +1576,9 @@ async function loadGlobalMsgs() {
   try {
     const r = await fetch(`/api/messages?since=${globalLastId}`);
     const msgs = await r.json();
-    globalMsgs = globalMsgs.concat(msgs);
+    const existingIds = new Set(globalMsgs.map(m => m.id));
+    const newMsgs = msgs.filter(m => !existingIds.has(m.id));
+    globalMsgs = globalMsgs.concat(newMsgs);
     msgs.forEach(m => globalLastId = Math.max(globalLastId, m.id));
     if (view === 'global') renderGlobalMsgs();
   } catch {}
@@ -2247,6 +2249,13 @@ function delMsg(id) {
 
 // Patch
 function patchEdit(prefix, id, content, edited_at) {
+  // Update in-memory arrays
+  const lists = prefix === 'g' ? [globalMsgs] : Object.values(serverMsgs);
+  for (const arr of lists) {
+    const m = arr.find(m => m.id === id);
+    if (m) { m.content = content; m.edited_at = edited_at; break; }
+  }
+  // Update DOM
   const el = document.querySelector(`.msg[data-id="${id}"]`);
   if (!el) return;
   const body = el.querySelector('.m-body');
@@ -2257,6 +2266,13 @@ function patchEdit(prefix, id, content, edited_at) {
   }
 }
 function patchDel(prefix, id) {
+  // Update in-memory arrays
+  const lists = prefix === 'g' ? [globalMsgs] : Object.values(serverMsgs);
+  for (const arr of lists) {
+    const m = arr.find(m => m.id === id);
+    if (m) { m.deleted = true; m.content = ''; break; }
+  }
+  // Update DOM
   const el = document.querySelector(`.msg[data-id="${id}"]`);
   if (el) el.innerHTML = '<div class="m-del">Message supprim\u00e9</div>';
 }
