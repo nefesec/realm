@@ -348,7 +348,18 @@ body {
 .logout-btn:hover { color: var(--red); }
 
 /* ── MAIN ── */
-.main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; background: var(--bg); overflow: hidden; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; background: var(--bg); overflow: hidden; position: relative; }
+.scroll-fab {
+  position: absolute; bottom: 90px; right: 20px; z-index: 10;
+  background: var(--accent); color: #fff; border: none;
+  border-radius: 20px; padding: 6px 16px;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 2px 14px var(--accent-glow);
+  transition: opacity .2s, transform .2s;
+}
+.scroll-fab:hover { background: var(--accent-h); transform: translateY(-2px); }
+.msg-link { color: #a78bfa; text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
+.msg-link:hover { color: var(--accent); }
 .chat-head {
   height: 48px; padding: 0 18px;
   border-bottom: 1px solid var(--border);
@@ -733,6 +744,7 @@ body {
       <input name="username" placeholder="Nom d'utilisateur" required autocomplete="username">
       <input name="email" type="email" placeholder="Email (optionnel)" class="hidden" autocomplete="email">
       <input name="password" type="password" placeholder="Mot de passe" required autocomplete="current-password">
+      <input name="totp_code" id="totp-field" placeholder="Code 2FA (6 chiffres)" maxlength="6" pattern="[0-9]{6}" style="display:none" autocomplete="one-time-code">
       <div class="auth-err" id="auth-err"></div>
       <button type="submit" class="btn-primary" id="auth-btn">Connexion</button>
     </form>
@@ -740,6 +752,14 @@ body {
 </div>
 
 <!-- MODALS -->
+<div class="modal-bg" id="modal-2fa" onclick="if(event.target===this)closeModal('modal-2fa')">
+  <div class="modal">
+    <h3>S&eacute;curit&eacute; 2FA</h3>
+    <div id="twofa-content"></div>
+    <div class="btns" id="twofa-btns"></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-create-server" onclick="if(event.target===this)closeModal('modal-create-server')">
   <div class="modal">
     <h3>Cr&eacute;er un serveur</h3>
@@ -848,6 +868,7 @@ body {
       <div id="search-results"></div>
     </div>
     <div id="msgs"></div>
+    <button class="scroll-fab" id="scroll-fab" style="display:none" onclick="scrollBot()">&#x2193; Nouveau</button>
     <div id="typing-indicator"></div>
     <div class="input-wrap">
       <div class="reply-strip" id="reply-strip">
@@ -928,7 +949,13 @@ function showToast(msg, dur=3000) { const t=$('toast'); t.textContent=msg; t.cla
 function openModal(id) { $(id).classList.add('on'); }
 function closeModal(id) { $(id).classList.remove('on'); }
 function setDot(on) { $('dot').classList.toggle('on', on); }
-function scrollBot() { const el=$('msgs'); el.scrollTop=el.scrollHeight; }
+function scrollBot() { const el=$('msgs'); el.scrollTop=el.scrollHeight; $('scroll-fab').style.display='none'; }
+function initScrollFab() {
+  $('msgs').addEventListener('scroll', () => {
+    const el=$('msgs');
+    $('scroll-fab').style.display = (el.scrollHeight - el.scrollTop - el.clientHeight > 150) ? '' : 'none';
+  });
+}
 
 // ── AUDIO / NOTIFICATION SOUNDS ──────────────────────────────
 function initAudio() {
@@ -994,10 +1021,19 @@ async function doAuth(e) {
   const f = new FormData(e.target);
   const body = { username: f.get('username'), password: f.get('password') };
   if (authMode==='register') body.email = f.get('email') || undefined;
+  const totpVal = f.get('totp_code');
+  if (totpVal) body.totp_code = totpVal;
   $('auth-btn').disabled = true;
   try {
     const r = await fetch(`/auth/${authMode}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
     const d = await r.json();
+    if (d.requires_2fa) {
+      $('totp-field').style.display = '';
+      $('totp-field').required = true;
+      $('totp-field').focus();
+      $('auth-err').textContent = 'Entrez votre code 2FA';
+      return;
+    }
     if (!r.ok) throw new Error(d.error||'Erreur');
     me = d;
     $('auth').style.display='none';
@@ -1022,6 +1058,50 @@ async function doLogout() {
   location.reload();
 }
 
+// ── 2FA SETUP ────────────────────────────────────────────────
+let _2faSecret = null;
+async function open2faSetup() {
+  const content = $('twofa-content');
+  const btns = $('twofa-btns');
+  // Check if 2FA is enabled by trying to fetch user info
+  content.innerHTML = '<p style="color:var(--text2);font-size:13px">Chargement...</p>';
+  btns.innerHTML = '';
+  openModal('modal-2fa');
+  try {
+    const r = await fetch('/auth/2fa/setup', { method:'POST' });
+    const d = await r.json();
+    _2faSecret = d.secret;
+    content.innerHTML = `
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Scannez ce QR code avec votre application d'authentification (Google Authenticator, Authy...)</p>
+      <div style="text-align:center;margin-bottom:12px"><img src="${d.qr}" style="width:160px;height:160px;border-radius:8px"></div>
+      <p style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:12px">Cl\u00e9 manuelle : <code style="color:var(--accent)">${d.secret}</code></p>
+      <input id="totp-confirm-code" placeholder="Entrez le code g\u00e9n\u00e9r\u00e9 (6 chiffres)" maxlength="6" pattern="[0-9]{6}" style="width:100%;padding:10px;background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none">
+    `;
+    btns.innerHTML = `
+      <button class="btn-cancel" onclick="closeModal('modal-2fa')">Annuler</button>
+      <button class="btn-primary" onclick="confirm2fa()">Activer</button>
+    `;
+  } catch { content.innerHTML = '<p style="color:var(--red)">Erreur lors de la g\u00e9n\u00e9ration.</p>'; }
+}
+
+async function confirm2fa() {
+  const code = $('totp-confirm-code')?.value?.trim();
+  if (!code || code.length !== 6) return showToast('Code invalide.');
+  try {
+    const r = await fetch('/auth/2fa/confirm', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ secret: _2faSecret, code }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    closeModal('modal-2fa');
+    showToast('2FA activ\u00e9 \u2713');
+  } catch(e) { showToast(e.message); }
+}
+
+async function disable2fa() {
+  if (!confirm('D\u00e9sactiver le 2FA ?')) return;
+  await fetch('/auth/2fa', { method:'DELETE' });
+  showToast('2FA d\u00e9sactiv\u00e9');
+}
+
 // ── BOOT ─────────────────────────────────────────────────────
 async function boot() {
   $('app').classList.add('on');
@@ -1038,6 +1118,7 @@ async function boot() {
   loadDmConversations();
   initDragDrop();
   initPasteUpload();
+  initScrollFab();
 }
 
 function renderSelfBar() {
@@ -1046,6 +1127,7 @@ function renderSelfBar() {
     <div class="self-av" style="background:${c}">${x(me.username[0].toUpperCase())}</div>
     <span class="self-name">${x(me.username)}</span>
     <button class="sound-btn" onclick="toggleSound()" title="${soundEnabled ? 'D\u00e9sactiver les sons' : 'Activer les sons'}">${soundEnabled ? '\u{1F50A}' : '\u{1F507}'}</button>
+    <button class="sound-btn" onclick="open2faSetup()" title="S\u00e9curit\u00e9 2FA">\u{1F510}</button>
     <button class="logout-btn" onclick="doLogout()" title="D&eacute;connexion">&#x23FB;</button>
   `;
 }
@@ -1139,7 +1221,12 @@ function initSocket() {
       dmUnread[partner] = (dmUnread[partner]||0) + 1;
       renderSidebar();
     }
-    if (pm.from_username !== me.username && !windowFocused) playSound('message');
+    if (pm.from_username !== me.username && !windowFocused) {
+      playSound('message');
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(pm.from_username, { body: pm.content.slice(0,100), icon: '/favicon.ico' });
+      }
+    }
   });
   sock.on('pm_error', ({ error }) => showToast(error));
 
@@ -1733,8 +1820,10 @@ function appendMsg(m, isDm=false) {
 
   html += `<div class="m-head"><span class="m-user" style="color:${color}" onclick="openDm('${x(from)}')">${x(from)}</span><span class="m-time">${time}</span>${m.edited_at?'<span class="m-edited">(modifi\u00e9)</span>':''}</div>`;
 
-  // Render body with mentions highlighted
-  html += `<div class="m-body">${renderMentions(x(contentStr))}</div>`;
+  // Render body with links + mentions
+  const { html: bodyHtml, extra: linkPreviews } = renderContent(contentStr);
+  html += `<div class="m-body">${bodyHtml}</div>`;
+  if (linkPreviews) html += linkPreviews;
 
   // Attachment
   if (m.attachment) {
@@ -1765,6 +1854,24 @@ function appendMsg(m, isDm=false) {
   if (m.reactions && m.reactions.length > 0) {
     renderReactionsForMsg(m.id, m.reactions);
   }
+}
+
+// ── CONTENT RENDERING (links + mentions) ─────────────────────
+function renderContent(raw) {
+  const URL_RE = /https?:\/\/[^\s<>"]+/g;
+  let extra = '', lastIdx = 0, parts = [], m;
+  while ((m = URL_RE.exec(raw)) !== null) {
+    parts.push(x(raw.slice(lastIdx, m.index)));
+    const url = m[0];
+    const safeUrl = x(url);
+    parts.push(`<a class="msg-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`);
+    if (/\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(url)) {
+      extra += `<div class="msg-attachment"><img class="msg-img-preview" src="${safeUrl}" loading="lazy" onclick="openImageFullscreen('${safeUrl}')"></div>`;
+    }
+    lastIdx = m.index + url.length;
+  }
+  parts.push(x(raw.slice(lastIdx)));
+  return { html: renderMentions(parts.join('')), extra };
 }
 
 // ── MENTIONS RENDERING ───────────────────────────────────────
