@@ -49,7 +49,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration:  false,
       webSecurity:      true,
-      sandbox:          true,
+      sandbox:          false,
     },
   });
 
@@ -61,13 +61,12 @@ function createWindow() {
     if (!url.startsWith(SERVER_URL)) e.preventDefault();
   });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  // Permissions: allow notifications + microphone/camera
-  const ALLOWED_PERMS = ['notifications', 'media', 'audioCapture', 'microphone'];
+  // Permissions: allow all media-related permissions for voice chat
   win.webContents.session.setPermissionRequestHandler((wc, permission, cb) => {
-    cb(ALLOWED_PERMS.includes(permission));
+    cb(true);
   });
-  win.webContents.session.setPermissionCheckHandler((wc, permission) => {
-    return ALLOWED_PERMS.includes(permission);
+  win.webContents.session.setPermissionCheckHandler(() => {
+    return true;
   });
 
   const showTimer = setTimeout(() => win?.show(), 2000);

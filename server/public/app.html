@@ -2303,13 +2303,17 @@ function toggleVoice() {
 
 async function joinGlobalVoice() {
   try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showToast('API media non disponible (HTTPS requis)');
+      return;
+    }
     localStr = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 } });
     sock.emit('join_voice');
     inVoice = true;
     isMuted = false;
     isDeafened = false;
     renderSidebar();
-  } catch { showToast('Micro non disponible'); }
+  } catch(e) { showToast('Micro: ' + (e.name || '') + ' ' + (e.message || 'non disponible')); console.error('[voice]', e); }
 }
 
 function leaveGlobalVoice() {
@@ -2334,13 +2338,17 @@ function toggleServerVoice(serverId, channelId) {
 
 async function joinServerVoice(serverId, channelId) {
   try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showToast('API media non disponible (HTTPS requis)');
+      return;
+    }
     localStr = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 } });
     sock.emit('server_join_voice', { serverId, channelId });
     voiceChannelId = channelId;
     isMuted = false;
     isDeafened = false;
     renderSidebar();
-  } catch { showToast('Micro non disponible'); }
+  } catch(e) { showToast('Micro: ' + (e.name || '') + ' ' + (e.message || 'non disponible')); console.error('[voice]', e); }
 }
 
 function leaveServerVoice(serverId, channelId) {
