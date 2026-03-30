@@ -234,6 +234,11 @@ if (!pmCols.includes('read_at')) {
   db.exec(`ALTER TABLE private_messages ADD COLUMN read_at TEXT`);
 }
 
+// v3.1: 2FA TOTP
+if (!userCols.includes('totp_secret')) {
+  db.exec(`ALTER TABLE users ADD COLUMN totp_secret TEXT`);
+}
+
 // Ensure every server has at least a #general text channel and a voice channel
 const allServers = db.prepare('SELECT id FROM servers').all();
 for (const { id } of allServers) {

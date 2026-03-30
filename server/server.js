@@ -167,6 +167,33 @@ function requireAdmin(req, res, next) {
   });
 }
 
+// ── 2FA TOTP ─────────────────────────────────────────────────
+const { generateSecret: totpGenSecret, generate: totpGenerate, verify: totpVerify, generateURI: totpURI } = require('otplib');
+const qrcode = require('qrcode');
+
+app.post('/auth/2fa/setup', requireAuth, async (req, res) => {
+  try {
+    const secret = totpGenSecret();
+    const uri = totpURI({ label: req.user.username, issuer: 'Realm', secret });
+    const qr = await qrcode.toDataURL(uri);
+    res.json({ secret, qr });
+  } catch (e) { res.status(500).json({ error: 'Erreur 2FA.' }); }
+});
+
+app.post('/auth/2fa/confirm', requireAuth, async (req, res) => {
+  const { secret, code } = req.body ?? {};
+  if (!secret || !code) return res.status(400).json({ error: 'Manquant.' });
+  const result = await totpVerify({ token: String(code), secret });
+  if (!result?.valid) return res.status(400).json({ error: 'Code invalide.' });
+  db.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').run(secret, req.user.id);
+  res.json({ ok: true });
+});
+
+app.delete('/auth/2fa', requireAuth, (req, res) => {
+  db.prepare('UPDATE users SET totp_secret = NULL WHERE id = ?').run(req.user.id);
+  res.json({ ok: true });
+});
+
 // ── ROUTES ───────────────────────────────────────────────────
 app.get('/', (_, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
 

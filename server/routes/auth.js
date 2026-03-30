@@ -69,7 +69,7 @@ router.post('/register', async (req, res) => {
 
 // ── CONNEXION ────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body ?? {};
+  const { username, password, totp_code } = req.body ?? {};
   if (!username || !password)
     return res.status(400).json({ error: 'Champs manquants.' });
   if (password.length > 128)
@@ -88,6 +88,14 @@ router.post('/login', async (req, res) => {
 
     if (!user || !ok || user.banned_at)
       return res.status(401).json({ error: 'Identifiants invalides.' });
+
+    // 2FA check
+    if (user.totp_secret) {
+      if (!totp_code) return res.json({ requires_2fa: true });
+      const { verify: totpVerify } = require('otplib');
+      const result = await totpVerify({ token: String(totp_code), secret: user.totp_secret });
+      if (!result?.valid) return res.status(401).json({ error: 'Code 2FA invalide.' });
+    }
 
     const token = jwt.sign(
       { id: user.id, username: user.username, tv: user.token_version },
