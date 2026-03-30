@@ -1477,7 +1477,10 @@ function goHome() {
   goGlobal();
 }
 
+function closeMobileSidebar() { $('sidebar').classList.remove('open'); }
+
 function goGlobal() {
+  closeMobileSidebar();
   leaveCurrentVoice();
   view = 'global';
   $('ch-ico').textContent = '#';
@@ -1494,6 +1497,7 @@ function goGlobal() {
 
 function openDm(username) {
   if (username === me.username) return;
+  closeMobileSidebar();
   view = `dm:${username}`;
   dmUnread[username] = 0;
   $('ch-ico').textContent = '@';
@@ -1526,6 +1530,7 @@ function openChannel(serverId, channelId) {
   if (!srv) return;
   const ch = (serverChannels[serverId]||[]).find(c => c.id === channelId);
   if (!ch) return;
+  closeMobileSidebar();
   sock.emit('join_server_room', { serverId });
   view = `server:${serverId}:${channelId}`;
   $('ch-ico').textContent = '#';
