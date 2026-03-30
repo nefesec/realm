@@ -1,6 +1,12 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
+
+// Linux: enable media device access
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
+  app.commandLine.appendSwitch('enable-features', 'AudioContextAutoplayByUserActivation');
+}
 const http = require('http');
 
 const fs = require('fs');
@@ -48,8 +54,8 @@ function createWindow() {
       preload:          path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration:  false,
-      webSecurity:      true,
-      sandbox:          false,
+      webSecurity:      false,
+      sandbox:          true,
     },
   });
 
