@@ -276,6 +276,15 @@ app.get('/api/pm/conversations', requireAuth, (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Erreur serveur.' }); }
 });
 
+// Marquer les messages d'un DM comme lus (sans refetch)
+app.post('/api/pm/:username/read', requireAuth, (req, res) => {
+  const other = req.params.username;
+  if (!other || other.length > 20) return res.status(400).json({ error: 'Paramètre invalide.' });
+  db.prepare(`UPDATE private_messages SET read_at = datetime('now') WHERE to_user_id = ? AND from_username = ? COLLATE NOCASE AND read_at IS NULL`)
+    .run(req.user.id, other);
+  res.json({ ok: true });
+});
+
 // Conversation avec un utilisateur (avec pagination)
 app.get('/api/pm/:username', requireAuth, (req, res) => {
   const other = req.params.username;

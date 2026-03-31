@@ -1178,6 +1178,13 @@ function initSocket() {
   sock = io({ auth: {} }); // uses cookie
   sock.on('connect', () => {
     setDot(true);
+    // Reset voice state on reconnect (server already cleaned up on disconnect)
+    if (inVoice || voiceChannelId) {
+      if (localStr) { localStr.getTracks().forEach(t => t.stop()); localStr = null; }
+      Object.keys(peers).forEach(closePeer);
+      inVoice = false; voiceChannelId = null; isMuted = false; isDeafened = false;
+      renderSidebar();
+    }
     // Join all server rooms on connect/reconnect
     for (const srv of servers) {
       sock.emit('join_server_room', { serverId: srv.id });
@@ -1216,12 +1223,15 @@ function initSocket() {
     const partner = pm.from_username === me.username ? pm.to_username : pm.from_username;
     if (!dmMsgs[partner]) dmMsgs[partner] = [];
     dmMsgs[partner].push(pm);
-    if (view === `dm:${partner}`) { appendMsg(pm, true); scrollBot(); }
-    else {
+    if (view === `dm:${partner}`) {
+      appendMsg(pm, true); scrollBot();
+      // Mark as read server-side for messages received while DM is open
+      if (pm.from_username !== me.username) fetch(`/api/pm/${encodeURIComponent(partner)}/read`, { method: 'POST' }).catch(()=>{});
+    } else {
       dmUnread[partner] = (dmUnread[partner]||0) + 1;
       renderSidebar();
     }
-    if (pm.from_username !== me.username && !windowFocused) {
+    if (pm.from_username !== me.username && view !== `dm:${partner}` && !windowFocused) {
       playSound('message');
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(pm.from_username, { body: pm.content.slice(0,100), icon: '/favicon.ico' });
