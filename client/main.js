@@ -5,6 +5,8 @@ const { spawn } = require('child_process');
 // Linux: enable media device access
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('enable-features', 'AudioContextAutoplayByUserActivation');
+  app.commandLine.appendSwitch('use-fake-ui-for-media-stream'); // bypass PipeWire permission UI
+  app.commandLine.appendSwitch('ignore-certificate-errors');   // self-signed cert localhost
 }
 const http = require('http');
 
@@ -60,6 +62,7 @@ function createWindow() {
 
   win.loadURL(SERVER_URL);
   win.setMenuBarVisibility(false);
+  win.webContents.on('console-message', (e, level, msg) => { if (level >= 2) console.error('[renderer]', msg); });
 
   // Security: block external navigation
   win.webContents.on('will-navigate', (e, url) => {
