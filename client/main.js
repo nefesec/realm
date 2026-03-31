@@ -126,6 +126,16 @@ app.on('certificate-error', (event, webContents, url, error, cert, callback) => 
 });
 
 // ── START ────────────────────────────────────────────────────
+// Allow self-signed cert for localhost
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+  if (url.startsWith('https://localhost') || url.startsWith('https://127.0.0.1')) {
+    event.preventDefault();
+    callback(true);
+  } else {
+    callback(false);
+  }
+});
+
 app.whenReady().then(() => {
   // Grant media permissions before window creation
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb) => cb(true));
