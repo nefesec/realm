@@ -4,7 +4,7 @@ const { spawn } = require('child_process');
 
 // Linux: enable media device access
 if (process.platform === 'linux') {
-  app.commandLine.appendSwitch('enable-features', 'AudioContextAutoplayByUserActivation');
+  app.commandLine.appendSwitch('enable-features', 'AudioContextAutoplayByUserActivation,WebRTCPipeWireCapturer');
   app.commandLine.appendSwitch('use-fake-ui-for-media-stream'); // bypass PipeWire permission UI
   app.commandLine.appendSwitch('ignore-certificate-errors');   // self-signed cert localhost
 }
@@ -120,12 +120,6 @@ ipcMain.on('notify', (_, { title, body }) => {
   const n = new Notification({ title, body });
   n.on('click', () => { win?.show(); win?.focus(); });
   n.show();
-});
-
-// Accept self-signed certs (local server only)
-app.on('certificate-error', (event, webContents, url, error, cert, callback) => {
-  if (new URL(url).hostname === 'localhost') { event.preventDefault(); callback(true); }
-  else callback(false);
 });
 
 // ── START ────────────────────────────────────────────────────

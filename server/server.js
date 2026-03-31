@@ -499,16 +499,13 @@ let dbSizeWarned = false;
 
 function getUserStorage(userId) {
   const row = db.prepare(`
-    SELECT COALESCE(SUM(size), 0) as total FROM attachments a
-    JOIN messages m ON a.message_id = m.id AND a.message_type = 'global' AND m.user_id = ?
-    UNION ALL
-    SELECT COALESCE(SUM(size), 0) FROM attachments a
-    JOIN private_messages pm ON a.message_id = pm.id AND a.message_type = 'dm' AND pm.from_user_id = ?
-    UNION ALL
-    SELECT COALESCE(SUM(size), 0) FROM attachments a
-    JOIN server_messages sm ON a.message_id = sm.id AND a.message_type = 'server' AND sm.user_id = ?
-  `).all(userId, userId, userId);
-  return row.reduce((sum, r) => sum + r.total, 0);
+    SELECT COALESCE(SUM(a.size), 0) as total
+    FROM attachments a
+    WHERE (a.message_type = 'global' AND a.message_id IN (SELECT id FROM messages WHERE user_id = ?))
+       OR (a.message_type = 'dm'     AND a.message_id IN (SELECT id FROM private_messages WHERE from_user_id = ?))
+       OR (a.message_type = 'server' AND a.message_id IN (SELECT id FROM server_messages WHERE user_id = ?))
+  `).get(userId, userId, userId);
+  return row?.total || 0;
 }
 
 function checkDbSize() {
@@ -548,67 +545,94 @@ app.post('/api/upload', requireAuth, uploadLimiter, (req, res, next) => {
     }
     if (!req.file) return res.status(400).json({ error: 'Aucun fichier.' });
 
-    // Storage checks
+    // DB size check (fast, no quota query yet)
     if (checkDbSize() === 'critical') return res.status(507).json({ error: 'Stockage serveur plein. Contactez un admin.' });
-    const used = getUserStorage(req.user.id);
-    if (used + req.file.size > MAX_USER_STORAGE) {
-      const usedMB = (used / 1024 / 1024).toFixed(1);
-      const maxMB = (MAX_USER_STORAGE / 1024 / 1024).toFixed(0);
-      return res.status(413).json({ error: `Quota atteint (${usedMB}/${maxMB} MB). Supprimez des fichiers.` });
-    }
 
     try {
       const { type, serverId, channelId, toUsername } = JSON.parse(req.body.context || '{}');
       const file = req.file;
-      const encData = encryptBuffer(file.buffer);
+      // Sanitize filename to prevent XSS if rendered raw
+      const safeName = (file.originalname || 'fichier')
+        .replace(/[<>"'&\r\n\x00-\x1f/\\]/g, '_')
+        .trim()
+        .slice(0, 100) || 'fichier';
       const created_at = new Date().toISOString();
-      let messageId, messageType = type || 'global';
+      let messageType = type || 'global';
 
-      if (messageType === 'server') {
-        if (!serverId || !channelId) return res.status(400).json({ error: 'serverId/channelId requis.' });
-        const m = db.prepare('SELECT 1 FROM server_members WHERE server_id = ? AND user_id = ?').get(serverId, req.user.id);
-        if (!m) return res.status(403).json({ error: 'Non membre.' });
-        const marker = `[file:${file.originalname}]`;
-        const { lastInsertRowid } = db.prepare(
-          'INSERT INTO server_messages (server_id, channel_id, user_id, username, content, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-        ).run(serverId, channelId, req.user.id, req.user.username, encrypt(marker), created_at);
-        messageId = Number(lastInsertRowid);
-      } else if (messageType === 'dm') {
-        if (!toUsername) return res.status(400).json({ error: 'toUsername requis.' });
-        const toUser = db.prepare('SELECT id FROM users WHERE username = ? COLLATE NOCASE').get(toUsername);
-        if (!toUser) return res.status(404).json({ error: 'Utilisateur introuvable.' });
-        const marker = `[file:${file.originalname}]`;
-        const { lastInsertRowid } = db.prepare(
-          'INSERT INTO private_messages (from_user_id, to_user_id, from_username, to_username, content, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-        ).run(req.user.id, toUser.id, req.user.username, toUsername, encrypt(marker), created_at);
-        messageId = Number(lastInsertRowid);
-      } else {
-        const marker = `[file:${file.originalname}]`;
-        const { lastInsertRowid } = db.prepare(
-          'INSERT INTO messages (user_id, username, content, created_at) VALUES (?, ?, ?, ?)'
-        ).run(req.user.id, req.user.username, encrypt(marker), created_at);
-        messageId = Number(lastInsertRowid);
+      // Validate context params before any DB work
+      if (messageType === 'server' && (!Number.isInteger(serverId) || !Number.isInteger(channelId)))
+        return res.status(400).json({ error: 'serverId/channelId requis.' });
+      if (messageType === 'dm' && !toUsername)
+        return res.status(400).json({ error: 'toUsername requis.' });
+
+      // Use a transaction to prevent quota race conditions
+      const doInsert = db.transaction(() => {
+        const used = getUserStorage(req.user.id);
+        if (used + file.size > MAX_USER_STORAGE) {
+          const err = new Error('QUOTA');
+          err.isQuota = true;
+          throw err;
+        }
+        const encData = encryptBuffer(file.buffer);
+        const marker = `[file:${safeName}]`;
+        let messageId;
+
+        if (messageType === 'server') {
+          const m = db.prepare('SELECT 1 FROM server_members WHERE server_id = ? AND user_id = ?').get(serverId, req.user.id);
+          if (!m) { const err = new Error('FORBIDDEN'); err.isForbidden = true; throw err; }
+          const { lastInsertRowid } = db.prepare(
+            'INSERT INTO server_messages (server_id, channel_id, user_id, username, content, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+          ).run(serverId, channelId, req.user.id, req.user.username, encrypt(marker), created_at);
+          messageId = Number(lastInsertRowid);
+        } else if (messageType === 'dm') {
+          const toUser = db.prepare('SELECT id FROM users WHERE username = ? COLLATE NOCASE').get(toUsername);
+          if (!toUser) { const err = new Error('NOTFOUND'); err.isNotFound = true; throw err; }
+          const { lastInsertRowid } = db.prepare(
+            'INSERT INTO private_messages (from_user_id, to_user_id, from_username, to_username, content, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+          ).run(req.user.id, toUser.id, req.user.username, toUsername, encrypt(marker), created_at);
+          messageId = Number(lastInsertRowid);
+        } else {
+          const { lastInsertRowid } = db.prepare(
+            'INSERT INTO messages (user_id, username, content, created_at) VALUES (?, ?, ?, ?)'
+          ).run(req.user.id, req.user.username, encrypt(marker), created_at);
+          messageId = Number(lastInsertRowid);
+        }
+
+        const { lastInsertRowid: attachId } = db.prepare(
+          'INSERT INTO attachments (message_id, message_type, filename, mime_type, size, data) VALUES (?, ?, ?, ?, ?, ?)'
+        ).run(messageId, messageType, safeName, file.mimetype, file.size, encData);
+
+        return { messageId, attachId: Number(attachId) };
+      });
+
+      let result;
+      try { result = doInsert(); }
+      catch (e) {
+        if (e.isQuota) {
+          const used = getUserStorage(req.user.id);
+          const usedMB = (used / 1024 / 1024).toFixed(1);
+          const maxMB = (MAX_USER_STORAGE / 1024 / 1024).toFixed(0);
+          return res.status(413).json({ error: `Quota atteint (${usedMB}/${maxMB} MB). Supprimez des fichiers.` });
+        }
+        if (e.isForbidden) return res.status(403).json({ error: 'Non membre.' });
+        if (e.isNotFound) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+        throw e;
       }
 
-      // Store encrypted file
-      const { lastInsertRowid: attachId } = db.prepare(
-        'INSERT INTO attachments (message_id, message_type, filename, mime_type, size, data) VALUES (?, ?, ?, ?, ?, ?)'
-      ).run(messageId, messageType, file.originalname, file.mimetype, file.size, encData);
-
-      const attachment = { id: Number(attachId), filename: file.originalname, mime_type: file.mimetype, size: file.size };
+      const { messageId, attachId } = result;
+      const attachment = { id: attachId, filename: safeName, mime_type: file.mimetype, size: file.size };
       const user = db.prepare('SELECT avatar_color FROM users WHERE id = ?').get(req.user.id);
 
       // Emit via socket
       if (messageType === 'server') {
         io.to(`server:${serverId}`).emit('server_new_message', {
           serverId, channelId, id: messageId, username: req.user.username,
-          avatar_color: user.avatar_color, content: `[file:${file.originalname}]`,
+          avatar_color: user.avatar_color, content: `[file:${safeName}]`,
           created_at, attachment,
         });
       } else if (messageType === 'dm') {
         const payload = { id: messageId, from_username: req.user.username, to_username: toUsername,
-          content: `[file:${file.originalname}]`, avatar_color: user.avatar_color, created_at, attachment };
-        // Send to both users
+          content: `[file:${safeName}]`, avatar_color: user.avatar_color, created_at, attachment };
         for (const [sid, u] of onlineUsers.entries()) {
           if (u.username === req.user.username || u.username.toLowerCase() === toUsername.toLowerCase()) {
             io.to(sid).emit('private_message', payload);
@@ -617,7 +641,7 @@ app.post('/api/upload', requireAuth, uploadLimiter, (req, res, next) => {
       } else {
         io.emit('new_message', {
           id: messageId, username: req.user.username, avatar_color: user.avatar_color,
-          content: `[file:${file.originalname}]`, created_at, attachment,
+          content: `[file:${safeName}]`, created_at, attachment,
         });
       }
 
@@ -732,7 +756,7 @@ app.get('/api/search', requireAuth, searchLimiter, (req, res) => {
 // ── READ POSITIONS (unread badges) ──────────────────────────
 app.post('/api/read-position', requireAuth, (req, res) => {
   const { context, lastReadId } = req.body ?? {};
-  if (!context || typeof context !== 'string' || !Number.isInteger(lastReadId)) {
+  if (!context || typeof context !== 'string' || context.length > 100 || !Number.isInteger(lastReadId)) {
     return res.status(400).json({ error: 'Paramètres invalides.' });
   }
   try {
@@ -1290,7 +1314,7 @@ io.on('connection', (socket) => {
 
   // ── READ POSITION (via socket for real-time) ──
   socket.on('update_read_position', ({ context, lastReadId }) => {
-    if (!context || typeof context !== 'string' || !Number.isInteger(lastReadId)) return;
+    if (!context || typeof context !== 'string' || context.length > 100 || !Number.isInteger(lastReadId)) return;
     if (!rl.readpos(userId)) return;
     try {
       db.prepare(`
