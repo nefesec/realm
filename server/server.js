@@ -119,6 +119,15 @@ app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ── AUTO-UPDATE ENDPOINT ──────────────────────────────────────
+const UPDATE_TOKEN = process.env.UPDATE_TOKEN;
+app.use('/updates', (req, res, next) => {
+  if (!UPDATE_TOKEN || req.headers['x-update-token'] !== UPDATE_TOKEN) {
+    return res.status(401).end();
+  }
+  next();
+}, express.static(path.join(__dirname, 'updates'), { dotfiles: 'deny' }));
+
 // Multer for file uploads (10MB max, memory storage)
 const upload = multer({
   storage: multer.memoryStorage(),

@@ -156,10 +156,20 @@ app.whenReady().then(() => {
   createTray();
   createWindow();
 
-  // Auto-update (silent check, installs on next quit)
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.checkForUpdates().catch(() => {});
+  // Auto-update depuis le serveur local (pas GitHub)
+  try {
+    const serverEnvRaw = fs.readFileSync(path.join(__dirname, '..', 'server', '.env'), 'utf8');
+    const tokenLine = serverEnvRaw.split('\n').find(l => l.startsWith('UPDATE_TOKEN='));
+    const updateToken = tokenLine ? tokenLine.split('=').slice(1).join('=').trim() : '';
+    if (updateToken) {
+      if (SERVER_URL.startsWith('https')) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+      autoUpdater.requestHeaders = { 'x-update-token': updateToken };
+      autoUpdater.setFeedURL({ provider: 'generic', url: `${SERVER_URL}/updates` });
+      autoUpdater.autoDownload = true;
+      autoUpdater.autoInstallOnAppQuit = true;
+      autoUpdater.checkForUpdates().catch(() => {});
+    }
+  } catch {}
 
   autoUpdater.on('update-downloaded', () => {
     if (win) win.webContents.executeJavaScript(`showToast && showToast('Mise à jour téléchargée — sera installée à la prochaine fermeture.')`).catch(() => {});

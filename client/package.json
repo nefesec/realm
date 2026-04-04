@@ -1,11 +1,12 @@
 {
   "name": "realm-client",
-  "version": "3.10.0",
+  "version": "3.11.0",
   "main": "main.js",
   "scripts": {
     "start":       "electron .",
     "build:win":   "electron-builder --win",
-    "build:linux": "electron-builder --linux"
+    "build:linux": "electron-builder --linux",
+    "release":     "bash ../scripts/release.sh"
   },
   "dependencies": {
     "electron-updater": "^6.8.3"
@@ -24,9 +25,8 @@
     ],
     "extraResources": [],
     "publish": {
-      "provider": "github",
-      "owner":    "nefesec",
-      "repo":     "realm"
+      "provider": "generic",
+      "url":      "https://localhost:3002/updates"
     },
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],
