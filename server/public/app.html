@@ -66,6 +66,11 @@ body {
   border-radius: var(--radius-lg);
   padding: 36px 32px;
   box-shadow: var(--shadow-lg), 0 0 60px rgba(124,58,237,.08);
+  animation: slideUp .5s cubic-bezier(.16,1,.3,1);
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .auth-logo { text-align: center; margin-bottom: 28px; }
 .auth-logo .brand-mark {
@@ -155,22 +160,23 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-size: 15px; font-weight: 700; color: #fff;
   cursor: pointer;
-  transition: border-radius .2s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s;
+  transition: border-radius .25s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s;
   position: relative;
   flex-shrink: 0;
 }
+.srv-icon::before {
+  content: '';
+  position: absolute; left: -8px; top: 50%; transform: translateY(-50%) scale(0);
+  width: 4px; height: 8px;
+  background: var(--text); border-radius: 0 4px 4px 0;
+  transition: height .2s ease, transform .2s ease;
+}
+.srv-icon:hover::before { height: 20px; transform: translateY(-50%) scale(1); }
+.srv-icon.active::before { height: 40px; transform: translateY(-50%) scale(1); }
 .srv-icon:hover { border-radius: 14px; }
 .srv-icon.active {
   border-radius: 14px;
-  box-shadow: 0 0 0 2px var(--accent), 0 4px 16px var(--accent-glow);
-}
-.srv-icon.active::before {
-  content: '';
-  position: absolute; left: -8px; top: 50%;
-  transform: translateY(-50%);
-  width: 3px; height: 22px;
-  border-radius: 0 3px 3px 0;
-  background: var(--text);
+  box-shadow: 0 4px 16px var(--accent-glow);
 }
 .srv-sep { width: 28px; height: 1px; background: var(--border); margin: 4px 0; flex-shrink: 0; }
 .srv-add {
@@ -235,6 +241,7 @@ body {
 .s-item {
   display: flex; align-items: center; gap: 6px;
   padding: 0 8px; margin: 1px 8px;
+  transition: background .1s, color .1s;
   height: 32px; border-radius: 4px;
   cursor: pointer; font-size: 15px;
   color: var(--text2);
@@ -426,7 +433,7 @@ body {
   padding: 2px 16px; border-radius: 0;
   transition: background .05s; position: relative;
 }
-.msg:hover { background: rgba(0,0,0,.06); }
+.msg:hover { background: rgba(255,255,255,.04); }
 .msg .m-head { display: flex; align-items: baseline; gap: 7px; margin-bottom: 1px; }
 .msg .m-user { font-size: 15px; font-weight: 600; cursor: pointer; }
 .msg .m-time { font-size: 11px; color: var(--muted); margin-left: 6px; font-weight: 400; }
@@ -444,18 +451,20 @@ body {
 }
 .msg .m-del { font-style: italic; color: var(--muted); font-size: 12px; }
 .msg-actions {
-  display: none; position: absolute; right: 8px; top: -10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  display: none; position: absolute; right: 8px; top: -14px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
   overflow: hidden; z-index: 5;
-  box-shadow: var(--shadow);
+  box-shadow: 0 4px 12px rgba(0,0,0,.6);
+  gap: 2px; padding: 2px;
 }
 .msg:hover .msg-actions { display: flex; }
 .msg-actions button {
   background: none; border: none; color: var(--text2);
-  padding: 5px 9px; cursor: pointer; font-size: 12px;
-  transition: all .1s;
+  padding: 5px 8px; cursor: pointer; font-size: 13px;
+  border-radius: 4px;
+  transition: background .1s, color .1s;
 }
 .msg-actions button:hover { background: var(--surface2); color: var(--text); }
 

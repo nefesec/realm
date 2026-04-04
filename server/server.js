@@ -1184,7 +1184,7 @@ io.on('connection', (socket) => {
     if (!isInt(serverId) || !isInt(channelId) || !content?.trim() || content.length > 2000) return;
     if (!rl.msg(userId)) return;
     const m = db.prepare('SELECT 1 FROM server_members WHERE server_id = ? AND user_id = ?').get(serverId, userId);
-    if (!m) return;
+    if (!m && role !== 'admin') return;
     // Verify channel belongs to server
     const ch = db.prepare('SELECT id FROM channels WHERE id = ? AND server_id = ?').get(channelId, serverId);
     if (!ch) return;
