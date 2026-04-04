@@ -1,14 +1,24 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain, session } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, Notification, ipcMain, session, desktopCapturer } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { spawn } = require('child_process');
 
 // Linux: enable media device access
 if (process.platform === 'linux') {
+  app.disableHardwareAcceleration(); // prevent black screen on Linux (GPU process crash)
   app.commandLine.appendSwitch('enable-features', 'AudioContextAutoplayByUserActivation,WebRTCPipeWireCapturer');
-  app.commandLine.appendSwitch('use-fake-ui-for-media-stream'); // bypass PipeWire permission UI
-  app.commandLine.appendSwitch('ignore-certificate-errors');   // self-signed cert localhost
+  app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox,AudioServiceOutOfProcess');
+  app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
+  app.commandLine.appendSwitch('ignore-certificate-errors');
+  app.commandLine.appendSwitch('disable-setuid-sandbox');
 }
 const http = require('http');
+
+// Ensure Chromium can find the PulseAudio/PipeWire socket
+if (!process.env.PULSE_SERVER) {
+  const uid = require('os').userInfo().uid;
+  process.env.PULSE_SERVER = `unix:/run/user/${uid}/pulse/native`;
+}
 
 const fs = require('fs');
 const PORT = process.env.PORT || 3002;
@@ -115,6 +125,11 @@ function createTray() {
 }
 
 // ── IPC ──────────────────────────────────────────────────────
+ipcMain.handle('get-screen-sources', async () => {
+  const sources = await desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: { width: 0, height: 0 } });
+  return sources.map(s => ({ id: s.id, name: s.name }));
+});
+
 ipcMain.on('notify', (_, { title, body }) => {
   if (!Notification.isSupported()) return;
   const n = new Notification({ title, body });
@@ -140,6 +155,19 @@ app.whenReady().then(() => {
   session.defaultSession.setDevicePermissionHandler(() => true);
   createTray();
   createWindow();
+
+  // Auto-update (silent check, installs on next quit)
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.checkForUpdates().catch(() => {});
+
+  autoUpdater.on('update-downloaded', () => {
+    if (win) win.webContents.executeJavaScript(`showToast && showToast('Mise à jour téléchargée — sera installée à la prochaine fermeture.')`).catch(() => {});
+    if (Notification.isSupported()) {
+      const n = new Notification({ title: 'Realm — Mise à jour', body: 'Prête à installer à la prochaine fermeture.' });
+      n.show();
+    }
+  });
 });
 
 app.on('window-all-closed', () => { /* reste dans le tray */ });

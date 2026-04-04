@@ -1,13 +1,15 @@
 {
   "name": "realm-client",
-  "version": "3.1.0",
+  "version": "3.10.0",
   "main": "main.js",
   "scripts": {
     "start":       "electron .",
     "build:win":   "electron-builder --win",
     "build:linux": "electron-builder --linux"
   },
-  "dependencies": {},
+  "dependencies": {
+    "electron-updater": "^6.8.3"
+  },
   "devDependencies": {
     "electron":         "^31.0.0",
     "electron-builder": "^24.13.3"
@@ -17,11 +19,17 @@
     "productName": "Realm",
     "files": [
       "main.js",
-      "preload.js"
+      "preload.js",
+      "node_modules/**/*"
     ],
     "extraResources": [],
+    "publish": {
+      "provider": "github",
+      "owner":    "nefesec",
+      "repo":     "realm"
+    },
     "win": {
-      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
       "icon":   "assets/icon.ico"
     },
     "linux": {
@@ -29,9 +37,10 @@
       "icon":   "assets/icon.png"
     },
     "nsis": {
-      "oneClick":  true,
-      "perMachine": false,
-      "language":  "1036"
+      "oneClick":        true,
+      "perMachine":      false,
+      "allowToChangeInstallationDirectory": false,
+      "language":        "1036"
     }
   }
 }

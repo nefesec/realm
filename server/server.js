@@ -325,13 +325,18 @@ app.get('/api/pm/:username', requireAuth, (req, res) => {
 // ── SERVER ROUTES (DIRECT CREATE, NO APPROVAL) ──────────────
 app.get('/api/servers', requireAuth, (req, res) => {
   try {
-    const rows = db.prepare(`
-      SELECT s.id, s.name, s.owner_id, s.owner_username, s.icon_color
-      FROM servers s
-      JOIN server_members sm ON sm.server_id = s.id
-      WHERE sm.user_id = ?
-      ORDER BY s.created_at ASC
-    `).all(req.user.id);
+    let rows;
+    if (req.user.role === 'admin') {
+      rows = db.prepare('SELECT id, name, owner_id, owner_username, icon_color FROM servers ORDER BY created_at ASC').all();
+    } else {
+      rows = db.prepare(`
+        SELECT s.id, s.name, s.owner_id, s.owner_username, s.icon_color
+        FROM servers s
+        JOIN server_members sm ON sm.server_id = s.id
+        WHERE sm.user_id = ?
+        ORDER BY s.created_at ASC
+      `).all(req.user.id);
+    }
     res.json(rows);
   } catch (e) { res.status(500).json({ error: 'Erreur serveur.' }); }
 });
@@ -942,15 +947,12 @@ function makeLimiter(max, windowMs) {
 }
 
 const rl = {
-  msg:    makeLimiter(20, 60_000),
-  edit:   makeLimiter(20, 60_000),
-  del:    makeLimiter(10, 60_000),
-  pm:     makeLimiter(30, 60_000),
-  typing: makeLimiter(30, 60_000),
-  voice:  makeLimiter(10, 60_000),
-  offer:  makeLimiter(10, 60_000),
-  answer: makeLimiter(10, 60_000),
-  ice:      makeLimiter(200, 60_000),
+  msg:      makeLimiter(20, 60_000),
+  edit:     makeLimiter(20, 60_000),
+  del:      makeLimiter(10, 60_000),
+  pm:       makeLimiter(30, 60_000),
+  typing:   makeLimiter(30, 60_000),
+  voice:    makeLimiter(10, 60_000),
   reaction: makeLimiter(30, 60_000),
   readpos:  makeLimiter(60, 60_000),
 };
@@ -1053,6 +1055,19 @@ io.on('connection', (socket) => {
     } catch (e) { console.error('[delete_message]', e.message); }
   });
 
+  socket.on('delete_pm', ({ id }) => {
+    if (!isInt(id) || role !== 'admin') return;
+    try {
+      const pm = db.prepare('SELECT from_user_id, to_user_id FROM private_messages WHERE id = ?').get(id);
+      if (!pm) return;
+      db.prepare("UPDATE private_messages SET content = ?, deleted_at = datetime('now') WHERE id = ?").run('', id);
+      [pm.from_user_id, pm.to_user_id].forEach(uid => {
+        const entry = [...onlineUsers.entries()].find(([, u]) => u.id === uid);
+        if (entry) io.to(entry[0]).emit('pm_deleted', { id });
+      });
+    } catch (e) { console.error('[delete_pm]', e.message); }
+  });
+
   // ── PRIVATE MESSAGES (OFFLINE SUPPORT) ──
   socket.on('private_message', ({ to, content }) => {
     if (!to || typeof to !== 'string' || to.length > 20) return;
@@ -1091,8 +1106,8 @@ io.on('connection', (socket) => {
   });
 
   // ── TYPING ──
-  socket.on('typing',      () => { if (rl.typing(userId)) socket.broadcast.emit('user_typing', username); });
-  socket.on('stop_typing', () => socket.broadcast.emit('user_stop_typing', username));
+  socket.on('typing',      ({ context } = {}) => { if (rl.typing(userId)) socket.broadcast.emit('user_typing', { username, context }); });
+  socket.on('stop_typing', ({ context } = {}) => socket.broadcast.emit('user_stop_typing', { username, context }));
 
   // ── GLOBAL VOICE ──
   socket.on('join_voice', () => {
@@ -1100,28 +1115,57 @@ io.on('connection', (socket) => {
     voiceUsers.set(username, { username, avatar_color });
     socket.join('voice');
     io.emit('voice_users', [...voiceUsers.values()]);
-    socket.to('voice').emit('voice_peer_joined', { socketId: socket.id, username });
+    socket.to('voice').emit('voice_peer_joined', { username });
   });
 
   socket.on('leave_voice', () => {
     voiceUsers.delete(username);
     socket.leave('voice');
     io.emit('voice_users', [...voiceUsers.values()]);
-    socket.to('voice').emit('voice_peer_left', { socketId: socket.id });
+    socket.to('voice').emit('voice_peer_left', { username });
   });
 
-  // WebRTC signaling (global)
-  socket.on('webrtc_offer',  ({ to, offer })     => {
-    if (typeof to !== 'string' || !onlineUsers.has(to) || !rl.offer(userId)) return;
-    io.to(to).emit('webrtc_offer', { from: socket.id, username, offer });
+  // PCM audio relay (global + server voice channels)
+  socket.on('voice_chunk', (data) => {
+    if (!data) return;
+    if (voiceUsers.has(username)) {
+      socket.to('voice').emit('voice_chunk', { from: username, pcm: data });
+      return;
+    }
+    for (const [chId, chVoice] of serverVoiceUsers) {
+      if (chVoice.has(username)) {
+        socket.to(`voice:${chId}`).emit('voice_chunk', { from: username, pcm: data });
+        return;
+      }
+    }
   });
-  socket.on('webrtc_answer', ({ to, answer })    => {
-    if (typeof to !== 'string' || !onlineUsers.has(to) || !rl.answer(userId)) return;
-    io.to(to).emit('webrtc_answer', { from: socket.id, answer });
+
+  // Screen share relay
+  socket.on('screen_chunk', (data) => {
+    if (!data) return;
+    if (voiceUsers.has(username)) {
+      socket.to('voice').emit('screen_chunk', { from: username, data });
+      return;
+    }
+    for (const [chId, chVoice] of serverVoiceUsers) {
+      if (chVoice.has(username)) {
+        socket.to(`voice:${chId}`).emit('screen_chunk', { from: username, data });
+        return;
+      }
+    }
   });
-  socket.on('webrtc_ice',    ({ to, candidate }) => {
-    if (typeof to !== 'string' || !onlineUsers.has(to) || !rl.ice(userId)) return;
-    io.to(to).emit('webrtc_ice', { from: socket.id, candidate });
+
+  socket.on('stop_screen', () => {
+    if (voiceUsers.has(username)) {
+      socket.to('voice').emit('screen_stopped', { from: username });
+      return;
+    }
+    for (const [chId, chVoice] of serverVoiceUsers) {
+      if (chVoice.has(username)) {
+        socket.to(`voice:${chId}`).emit('screen_stopped', { from: username });
+        return;
+      }
+    }
   });
 
   // ── SERVER ROOMS ──
@@ -1220,7 +1264,7 @@ io.on('connection', (socket) => {
     if (!serverVoiceUsers.has(channelId)) serverVoiceUsers.set(channelId, new Map());
     serverVoiceUsers.get(channelId).set(username, { username, avatar_color });
     io.to(`server:${serverId}`).emit('server_voice_users', { serverId, channelId, users: [...serverVoiceUsers.get(channelId).values()] });
-    socket.to(`voice:${channelId}`).emit('server_voice_peer_joined', { serverId, channelId, socketId: socket.id, username });
+    socket.to(`voice:${channelId}`).emit('server_voice_peer_joined', { serverId, channelId, username });
   });
 
   socket.on('server_leave_voice', ({ serverId, channelId }) => {
@@ -1231,21 +1275,7 @@ io.on('connection', (socket) => {
     if (isInt(serverId)) {
       io.to(`server:${serverId}`).emit('server_voice_users', { serverId, channelId, users });
     }
-    socket.to(`voice:${channelId}`).emit('server_voice_peer_left', { serverId, channelId, socketId: socket.id });
-  });
-
-  // Server WebRTC signaling
-  socket.on('server_webrtc_offer',  ({ serverId, to, offer })     => {
-    if (!isInt(serverId) || typeof to !== 'string' || !onlineUsers.has(to) || !rl.offer(userId)) return;
-    io.to(to).emit('server_webrtc_offer', { serverId, from: socket.id, username, offer });
-  });
-  socket.on('server_webrtc_answer', ({ serverId, to, answer })    => {
-    if (!isInt(serverId) || typeof to !== 'string' || !onlineUsers.has(to) || !rl.answer(userId)) return;
-    io.to(to).emit('server_webrtc_answer', { serverId, from: socket.id, answer });
-  });
-  socket.on('server_webrtc_ice',    ({ serverId, to, candidate }) => {
-    if (!isInt(serverId) || typeof to !== 'string' || !onlineUsers.has(to) || !rl.ice(userId)) return;
-    io.to(to).emit('server_webrtc_ice', { serverId, from: socket.id, candidate });
+    socket.to(`voice:${channelId}`).emit('server_voice_peer_left', { serverId, channelId, username });
   });
 
   // ── REACTIONS ──
@@ -1343,17 +1373,16 @@ io.on('connection', (socket) => {
     Object.values(rl).forEach(l => l.clear(userId));
     io.emit('online_users', uniqueUsers());
     io.emit('voice_users', [...voiceUsers.values()]);
-    socket.to('voice').emit('voice_peer_left', { socketId: socket.id });
+    socket.to('voice').emit('voice_peer_left', { username });
     // Clean server voice channels
     for (const [chId, chVoice] of serverVoiceUsers) {
       if (chVoice.has(username)) {
         chVoice.delete(username);
         const users = [...chVoice.values()];
-        // Find serverId from channel
         const ch = db.prepare('SELECT server_id FROM channels WHERE id = ?').get(chId);
         if (ch) {
           io.to(`server:${ch.server_id}`).emit('server_voice_users', { serverId: ch.server_id, channelId: chId, users });
-          socket.to(`voice:${chId}`).emit('server_voice_peer_left', { serverId: ch.server_id, channelId: chId, socketId: socket.id });
+          socket.to(`voice:${chId}`).emit('server_voice_peer_left', { serverId: ch.server_id, channelId: chId, username });
         }
       }
     }

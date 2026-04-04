@@ -10,29 +10,29 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg:        #0c0c14;
-  --surface:   #111120;
-  --surface2:  #181829;
-  --surface3:  #1e1e33;
-  --border:    #252540;
-  --border2:   #2e2e50;
-  --accent:    #7c3aed;
-  --accent-h:  #6d28d9;
-  --accent-dim: rgba(124,58,237,.12);
-  --accent-glow: rgba(124,58,237,.25);
-  --text:      #ededf5;
-  --text2:     #8888aa;
-  --muted:     #44445a;
-  --green:     #10d97e;
-  --red:       #f04060;
-  --yellow:    #f0b840;
-  --sidebar:   240px;
-  --srv-bar:   58px;
-  --radius-sm: 6px;
-  --radius:    10px;
-  --radius-lg: 14px;
-  --shadow:    0 4px 20px rgba(0,0,0,.5);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,.6);
+  --bg:         #000000;
+  --surface:    #0c0c0c;
+  --surface2:   #111111;
+  --surface3:   #1c1c1c;
+  --border:     #1f1f1f;
+  --border2:    #1f1f1f;
+  --text:       #DBDEE1;
+  --text2:      #B5BAC1;
+  --muted:      #80848E;
+  --accent:     #7c3aed;
+  --accent-h:   #6d28d9;
+  --accent-dim: rgba(124,58,237,.15);
+  --accent-glow:rgba(124,58,237,.4);
+  --green:      #23A559;
+  --red:        #F23F43;
+  --yellow:     #f0b840;
+  --sidebar:    240px;
+  --srv-bar:    58px;
+  --radius-sm:  4px;
+  --radius:     8px;
+  --radius-lg:  12px;
+  --shadow:     0 4px 20px rgba(0,0,0,.5);
+  --shadow-lg:  0 8px 40px rgba(0,0,0,.6);
 }
 
 body {
@@ -217,12 +217,14 @@ body {
 .conn-dot.on { background: var(--green); }
 .s-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 0; }
 .s-label {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .08em;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .02em;
   color: var(--muted);
-  padding: 10px 14px 4px;
+  padding: 16px 8px 4px 8px;
   display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer;
 }
+.s-label:hover { color: var(--text2); }
 .s-label-btn {
   background: none; border: none; color: var(--muted);
   cursor: pointer; font-size: 14px; line-height: 1;
@@ -231,18 +233,18 @@ body {
 }
 .s-label-btn:hover { color: var(--text); }
 .s-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 10px;
-  border-radius: var(--radius-sm);
-  margin: 0 6px;
-  cursor: pointer;
-  color: var(--text2); font-size: 13px; font-weight: 500;
-  transition: background .1s, color .1s;
-  user-select: none;
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 8px; margin: 1px 8px;
+  height: 32px; border-radius: 4px;
+  cursor: pointer; font-size: 15px;
+  color: var(--text2);
+  transition: background .05s, color .05s;
+  position: relative;
+  white-space: nowrap; overflow: hidden;
 }
-.s-item:hover  { background: var(--surface2); color: var(--text); }
-.s-item.active { background: var(--accent-dim); color: var(--accent); }
-.s-item .ico   { width: 16px; text-align: center; flex-shrink: 0; font-size: 13px; }
+.s-item:hover { background: var(--surface3); color: var(--text); }
+.s-item.active { background: var(--surface3); color: var(--text); }
+.s-item .ico { font-size: 18px; color: var(--muted); flex-shrink: 0; }
 .s-item .badge {
   margin-left: auto;
   background: var(--red); color: #fff;
@@ -250,7 +252,7 @@ body {
   padding: 1px 5px; border-radius: 10px;
   min-width: 18px; text-align: center;
 }
-.s-item .name  { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.s-item .name { flex: 1; font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
 .u-item {
   display: flex; align-items: center; gap: 8px;
   padding: 5px 10px; margin: 0 6px;
@@ -281,33 +283,55 @@ body {
 .u-item:hover .kick-btn { opacity: 1; }
 .kick-btn:hover { color: var(--red); background: rgba(240,64,96,.1); }
 
+/* ── VOICE VIEW (main) ── */
+.voice-view {
+  flex: 1; flex-direction: column; align-items: center; justify-content: center;
+  background: var(--bg); gap: 40px; padding: 48px 32px; overflow-y: auto; display: none;
+}
+.vv-cards { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 720px; }
+.vv-card {
+  width: 136px; height: 100px; border-radius: 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  background: var(--surface3); position: relative; overflow: hidden;
+}
+.vv-card-av {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: #fff;
+}
+.vv-card-name { font-size: 12px; font-weight: 600; color: var(--text); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vv-card-mute { position: absolute; bottom: 6px; right: 6px; font-size: 11px; color: var(--red); }
+.vv-card.speaking .vv-card-av { box-shadow: 0 0 0 3px var(--green); }
+.vv-card.speaking { background: rgba(35,165,89,.1); }
+.v-user.speaking { color: var(--text); }
+.v-user.speaking .v-av { box-shadow: 0 0 0 2px var(--green); }
+#vv-screen-container { width: 100%; max-width: 860px; display: flex; flex-direction: column; gap: 8px; }
+#vv-screen-container video { width: 100%; border-radius: 8px; background: #000; max-height: 480px; }
+.screen-share-label { font-size: 11px; color: var(--muted); text-align: center; margin-top: -4px; }
+.vv-info { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.vv-channel-name { font-size: 24px; font-weight: 700; color: var(--text); }
+.vv-channel-sub { font-size: 14px; color: var(--muted); }
+.vv-join-btn {
+  background: var(--green); color: #fff; border: none;
+  padding: 12px 36px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600; cursor: pointer; letter-spacing: .2px;
+  transition: filter .1s;
+}
+.vv-join-btn:hover { filter: brightness(1.1); }
+.vv-join-btn.leave { background: var(--red); }
+.vv-ctrl { display: flex; gap: 8px; }
+
 /* ── VOICE BAR ── */
-.voice-bar { border-top: 1px solid var(--border); padding: 10px; flex-shrink: 0; }
-.voice-top { display: flex; align-items: center; gap: 6px; padding: 2px 2px 8px; }
-.voice-top .vlabel {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .08em;
-  color: var(--muted); flex: 1;
-}
-.vbtn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 13px; border-radius: var(--radius-sm);
-  font-size: 11px; font-weight: 700; cursor: pointer;
-  border: none;
-  background: rgba(16,217,126,.18); color: var(--green);
-  transition: all .15s; letter-spacing: .2px;
-}
-.vbtn:hover { background: rgba(16,217,126,.30); box-shadow: 0 2px 10px rgba(16,217,126,.25); }
-.vbtn.leave { background: rgba(240,64,96,.15); color: var(--red); }
-.vbtn.leave:hover { background: rgba(240,64,96,.28); box-shadow: 0 2px 10px rgba(240,64,96,.25); }
+.voice-bar { border-top: 1px solid var(--border); padding: 6px 0; flex-shrink: 0; }
 .s-item .voice-join-pill {
-  flex-shrink: 0; font-size: 10px; font-weight: 700; letter-spacing: .2px;
-  background: rgba(16,217,126,.12); color: var(--green);
-  border: none; border-radius: 4px; padding: 2px 8px;
+  flex-shrink: 0; font-size: 9px; font-weight: 800; letter-spacing: .3px;
+  background: var(--accent-dim); color: var(--accent);
+  border: 1px solid rgba(124,58,237,.3);
+  border-radius: 3px; padding: 2px 6px;
   opacity: 0; transition: opacity .15s; pointer-events: none;
 }
 .s-item:hover .voice-join-pill { opacity: 1; }
-.s-item.active .voice-join-pill { background: rgba(240,64,96,.12); color: var(--red); opacity: 1; }
+.s-item.active .voice-join-pill { background: rgba(16,217,126,.1); color: var(--green); border-color: rgba(16,217,126,.3); opacity: 1; }
 .invite-btn {
   display: inline-flex; align-items: center; gap: 5px;
   background: var(--accent-dim); color: var(--accent);
@@ -327,25 +351,38 @@ body {
 
 /* ── SELF BAR ── */
 .self-bar {
-  border-top: 1px solid var(--border);
-  padding: 10px 12px;
-  display: flex; align-items: center; gap: 8px;
+  height: 52px; min-height: 52px;
+  padding: 0 8px;
+  display: flex; align-items: center; gap: 2px;
   flex-shrink: 0;
   background: var(--surface2);
+  border-top: none;
   margin-top: auto;
 }
 .self-av {
-  width: 30px; height: 30px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+  font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
 }
-.self-name { font-size: 13px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.self-info { flex: 1; padding: 0 6px; min-width: 0; overflow: hidden; }
+.self-name { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.self-status-voice { font-size: 11px; color: var(--green); display: block; }
+.self-voice-btn {
+  width: 32px; height: 32px; background: none; border: none;
+  color: var(--text2); cursor: pointer; font-size: 18px;
+  border-radius: 4px; display: flex; align-items: center; justify-content: center;
+  transition: background .1s, color .1s; flex-shrink: 0;
+}
+.self-voice-btn:hover { background: var(--surface3); color: var(--text); }
+.self-voice-btn.muted { color: var(--red); }
+.self-voice-btn.disabled { opacity: .35; cursor: default; }
 .logout-btn {
-  background: none; border: none; color: var(--muted);
-  cursor: pointer; font-size: 15px; padding: 4px;
-  border-radius: 4px; transition: color .15s;
+  width: 32px; height: 32px; background: none; border: none;
+  color: var(--muted); cursor: pointer; font-size: 18px;
+  border-radius: 4px; display: flex; align-items: center; justify-content: center;
+  transition: background .1s, color .1s;
 }
-.logout-btn:hover { color: var(--red); }
+.logout-btn:hover { background: var(--surface3); color: var(--red); }
 
 /* ── MAIN ── */
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; background: var(--bg); overflow: hidden; position: relative; }
@@ -361,17 +398,17 @@ body {
 .msg-link { color: #a78bfa; text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
 .msg-link:hover { color: var(--accent); }
 .chat-head {
-  height: 48px; padding: 0 18px;
+  height: 48px; padding: 0 16px;
   border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 8px;
   flex-shrink: 0;
-  background: var(--surface);
+  background: var(--bg);
 }
-.chat-head .ch-ico  { font-size: 15px; color: var(--muted); }
-.chat-head .ch-name { font-size: 14px; font-weight: 600; }
-.chat-head .ch-sub  {
-  font-size: 12px; color: var(--text2);
-  padding-left: 10px; border-left: 1px solid var(--border); margin-left: 2px;
+.chat-head .ch-ico { font-size: 22px; color: var(--muted); flex-shrink: 0; }
+.chat-head .ch-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.chat-head .ch-sub {
+  font-size: 13px; color: var(--text2);
+  padding-left: 8px; border-left: 1px solid var(--border); margin-left: 4px;
 }
 .ch-actions { margin-left: auto; display: flex; gap: 6px; }
 .ch-actions button {
@@ -383,17 +420,18 @@ body {
 .ch-actions button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 /* ── MESSAGES ── */
-#msgs { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 1px; }
+#msgs { flex: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; gap: 0; }
 .msg {
-  padding: 5px 10px; border-radius: var(--radius-sm);
-  transition: background .1s; position: relative;
+  display: flex; flex-direction: column;
+  padding: 2px 16px; border-radius: 0;
+  transition: background .05s; position: relative;
 }
-.msg:hover { background: var(--surface2); }
-.msg .m-head { display: flex; align-items: baseline; gap: 7px; margin-bottom: 2px; }
-.msg .m-user { font-size: 13px; font-weight: 600; cursor: pointer; }
-.msg .m-time { font-size: 11px; color: var(--muted); }
+.msg:hover { background: rgba(0,0,0,.06); }
+.msg .m-head { display: flex; align-items: baseline; gap: 7px; margin-bottom: 1px; }
+.msg .m-user { font-size: 15px; font-weight: 600; cursor: pointer; }
+.msg .m-time { font-size: 11px; color: var(--muted); margin-left: 6px; font-weight: 400; }
 .msg .m-body {
-  font-size: 13.5px; line-height: 1.5; color: var(--text);
+  font-size: 15px; line-height: 1.375; color: var(--text);
   word-break: break-word; white-space: pre-wrap;
 }
 .msg .m-edited { font-size: 10px; color: var(--muted); }
@@ -434,22 +472,15 @@ body {
 .reply-strip.on { display: flex; }
 .reply-strip .r-close { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; }
 .input-box {
-  display: flex; align-items: flex-end; gap: 8px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 8px 12px;
-  transition: border-color .15s, box-shadow .15s;
-}
-.input-box:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
+  display: flex; align-items: center; gap: 0;
+  background: var(--surface3); border-radius: 8px;
+  padding: 0 16px; min-height: 44px;
 }
 .input-box textarea {
-  flex: 1; background: none; border: none;
-  color: var(--text); font-size: 14px;
-  font-family: inherit; resize: none; outline: none;
-  max-height: 120px; line-height: 1.5;
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text); font-size: 15px; line-height: 1.375;
+  padding: 11px 0; resize: none; max-height: 50vh;
+  font-family: inherit;
 }
 .input-box textarea::placeholder { color: var(--muted); }
 .send-btn {
@@ -556,16 +587,16 @@ body {
 .msg.grouped { padding-top: 0; }
 .msg.grouped .m-head { display: none; }
 .msg .m-avatar {
-  width: 30px; height: 30px; border-radius: 50%;
+  width: 40px; height: 40px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #fff;
-  flex-shrink: 0; margin-right: 10px;
+  font-size: 16px; font-weight: 700; color: #fff;
+  flex-shrink: 0; cursor: pointer; margin-top: 2px;
 }
 .msg.grouped .m-avatar { visibility: hidden; }
 .msg .m-content { flex: 1; min-width: 0; }
-.msg .m-row { display: flex; align-items: flex-start; }
+.msg .m-row { display: flex; align-items: flex-start; gap: 16px; width: 100%; }
 .msg.grouped:hover .m-time-hover { display: inline; }
-.m-time-hover { display: none; font-size: 10px; color: var(--muted); position: absolute; left: 4px; top: 5px; }
+.m-time-hover { display: none; font-size: 10px; color: var(--muted); position: absolute; left: 20px; top: 4px; }
 
 /* ── REACTIONS ── */
 .msg-reactions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
@@ -666,7 +697,7 @@ body {
 .drop-overlay.on { display: flex; }
 
 /* ── VOICE CONTROLS ── */
-.voice-controls { display: flex; gap: 4px; margin-left: auto; }
+.voice-controls { display: flex; gap: 4px; padding: 4px 8px 2px; }
 .voice-ctrl-btn {
   background: var(--surface2); border: 1px solid var(--border);
   color: var(--text2); width: 28px; height: 28px;
@@ -843,10 +874,15 @@ body {
       <div class="conn-dot" id="dot"></div>
     </div>
     <div class="s-scroll" id="s-scroll"></div>
+    <div id="admin-bar" style="display:none;padding:6px 8px;border-top:1px solid var(--border)">
+      <button onclick="openAdmin()" style="width:100%;padding:7px 10px;background:rgba(242,63,67,.12);border:1px solid rgba(242,63,67,.3);color:var(--red);border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;text-align:left">&#x1F6E1; Panneau Admin</button>
+    </div>
     <div class="voice-bar" id="voice-bar" style="display:none">
-      <div class="voice-top">
-        <span class="vlabel" id="voice-label">Vocal</span>
-        <button class="vbtn" id="voice-btn" onclick="toggleVoice()">Rejoindre</button>
+      <div class="s-label" id="voice-label">Vocal global</div>
+      <div class="s-item" id="voice-channel-item" onclick="openGlobalVoice()">
+        <span class="ico">&#x1f50a;</span>
+        <span class="name">G&eacute;n&eacute;ral</span>
+        <span class="voice-join-pill" id="voice-btn"></span>
       </div>
       <div class="v-users" id="voice-users"></div>
     </div>
@@ -867,6 +903,19 @@ body {
       <input class="s-input" id="search-input" placeholder="Rechercher des messages..." oninput="doSearch(this.value)">
       <div id="search-results"></div>
     </div>
+    <!-- Voice View -->
+    <div class="voice-view" id="voice-view">
+      <div id="vv-screen-container"></div>
+      <div class="vv-cards" id="vv-cards"></div>
+      <div class="vv-info">
+        <div class="vv-channel-name" id="vv-channel-name">G&eacute;n&eacute;ral</div>
+        <div class="vv-channel-sub" id="vv-channel-sub">Personne en vocal</div>
+        <button class="vv-join-btn" id="vv-join-btn" onclick="voiceViewJoin()">Rejoindre</button>
+        <div class="vv-ctrl" id="vv-ctrl" style="display:none"></div>
+      </div>
+    </div>
+    <!-- Chat Area -->
+    <div id="chat-area" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden">
     <div id="msgs"></div>
     <button class="scroll-fab" id="scroll-fab" style="display:none" onclick="scrollBot()">&#x2193; Nouveau</button>
     <div id="typing-indicator"></div>
@@ -885,6 +934,7 @@ body {
       </div>
       <div class="upload-progress" id="upload-progress" style="display:none"></div>
     </div>
+    </div><!-- /#chat-area -->
   </div>
 </div>
 
@@ -904,11 +954,15 @@ let replyTo = null;
 
 // Voice
 let inVoice = false, voiceChannelId = null;
-let localStr = null, peers = {}, peerAudio = {};
+let voiceCapture = null; // { stream, audioCtx, processor, src, compressor }
+let voicePlayCtx = null, voiceNextTime = {};
+let speakingUsers = {}; // username → timeout id
+let sharingScreen = false, screenCapture = null;
+let screenPlayers = {}; // username → { ms, sb, queue, appending, video }
 
 // Mute/Deafen
 let isMuted = false, isDeafened = false;
-let voiceMuteStates = {}; // socketId or username → {muted, deafened}
+let voiceMuteStates = {}; // username → {muted, deafened}
 
 // Unread
 let unreadCounts = {}; // context key → count
@@ -935,11 +989,6 @@ const EMOJI_LIST = [
   '\u{1F60E}','\u{1F64F}','\u{1F49C}','\u{1F31F}','\u{1F4A1}','\u{1F60A}'
 ];
 
-// LAN-only ICE (no external STUN/TURN needed for same-network)
-const ICE = { iceServers: [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-] };
 
 // ── UTIL ─────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -949,12 +998,20 @@ function showToast(msg, dur=3000) { const t=$('toast'); t.textContent=msg; t.cla
 function openModal(id) { $(id).classList.add('on'); }
 function closeModal(id) { $(id).classList.remove('on'); }
 function setDot(on) { $('dot').classList.toggle('on', on); }
-function scrollBot() { const el=$('msgs'); el.scrollTop=el.scrollHeight; $('scroll-fab').style.display='none'; }
+let _newMsgCount = 0;
+function isNearBottom() { const el=$('msgs'); return el.scrollHeight - el.scrollTop - el.clientHeight < 150; }
+function updateScrollFab() {
+  const fab = $('scroll-fab');
+  if (!isNearBottom()) {
+    fab.style.display = '';
+    fab.textContent = _newMsgCount > 0 ? `↓ ${_newMsgCount} nouveau${_newMsgCount>1?'x':''}` : '↓';
+  } else {
+    _newMsgCount = 0; fab.style.display = 'none';
+  }
+}
+function scrollBot() { const el=$('msgs'); el.scrollTop=el.scrollHeight; _newMsgCount=0; $('scroll-fab').style.display='none'; }
 function initScrollFab() {
-  $('msgs').addEventListener('scroll', () => {
-    const el=$('msgs');
-    $('scroll-fab').style.display = (el.scrollHeight - el.scrollTop - el.clientHeight > 150) ? '' : 'none';
-  });
+  $('msgs').addEventListener('scroll', () => updateScrollFab());
 }
 
 // ── AUDIO / NOTIFICATION SOUNDS ──────────────────────────────
@@ -1123,11 +1180,16 @@ async function boot() {
 
 function renderSelfBar() {
   const c = safeColor(me.avatar_color);
+  const inAnyVoice = inVoice || voiceChannelId !== null;
   $('self-bar').innerHTML = `
     <div class="self-av" style="background:${c}">${x(me.username[0].toUpperCase())}</div>
-    <span class="self-name">${x(me.username)}</span>
+    <div class="self-info">
+      <span class="self-name">${x(me.username)}</span>
+      ${inAnyVoice ? `<span class="self-status-voice">\u25CF En vocal</span>` : ''}
+    </div>
+    <button class="self-voice-btn${inAnyVoice ? (isMuted?' muted':'') : ' disabled'}" onclick="${inAnyVoice?'toggleMute()':''}" title="${isMuted?'Activer micro':'Couper micro'}">${isMuted?'\u{1F507}':'\u{1F3A4}'}</button>
+    <button class="self-voice-btn${inAnyVoice ? (isDeafened?' muted':'') : ' disabled'}" onclick="${inAnyVoice?'toggleDeafen()':''}" title="${isDeafened?'Activer son':'Couper son'}">${isDeafened?'\u{1F3A7}':'\u{1F3A7}'}</button>
     <button class="sound-btn" onclick="toggleSound()" title="${soundEnabled ? 'D\u00e9sactiver les sons' : 'Activer les sons'}">${soundEnabled ? '\u{1F50A}' : '\u{1F507}'}</button>
-    <button class="sound-btn" onclick="open2faSetup()" title="S\u00e9curit\u00e9 2FA">\u{1F510}</button>
     <button class="logout-btn" onclick="doLogout()" title="D&eacute;connexion">&#x23FB;</button>
   `;
 }
@@ -1206,8 +1268,8 @@ function initSocket() {
     globalLastId = Math.max(globalLastId, m.id);
     if (view === 'global') {
       appendMsg(m);
-      scrollBot();
-      updateReadPosition();
+      if (isNearBottom()) { scrollBot(); updateReadPosition(); }
+      else { _newMsgCount++; updateScrollFab(); }
     } else {
       incrementUnread('global');
       renderSrvBar();
@@ -1224,7 +1286,9 @@ function initSocket() {
     if (!dmMsgs[partner]) dmMsgs[partner] = [];
     dmMsgs[partner].push(pm);
     if (view === `dm:${partner}`) {
-      appendMsg(pm, true); scrollBot();
+      appendMsg(pm, true);
+      if (isNearBottom()) scrollBot();
+      else { _newMsgCount++; updateScrollFab(); }
       // Mark as read server-side for messages received while DM is open
       if (pm.from_username !== me.username) fetch(`/api/pm/${encodeURIComponent(partner)}/read`, { method: 'POST' }).catch(()=>{});
     } else {
@@ -1239,6 +1303,7 @@ function initSocket() {
     }
   });
   sock.on('pm_error', ({ error }) => showToast(error));
+  sock.on('pm_deleted', ({ id }) => patchDel('dm', id));
 
   // Server messages
   sock.on('server_new_message', m => {
@@ -1248,8 +1313,8 @@ function initSocket() {
     serverLastId[key] = Math.max(serverLastId[key]||0, m.id);
     if (view === `server:${m.serverId}:${m.channelId}`) {
       appendMsg(m);
-      scrollBot();
-      updateReadPosition();
+      if (isNearBottom()) { scrollBot(); updateReadPosition(); }
+      else { _newMsgCount++; updateScrollFab(); }
     } else {
       incrementUnread(`channel:${key}`);
       renderSrvBar();
@@ -1283,22 +1348,18 @@ function initSocket() {
   // Voice
   sock.on('voice_users', users => { renderGlobalVoice(users); });
   sock.on('server_voice_users', ({ serverId, channelId, users }) => renderServerVoice(serverId, channelId, users));
-
-  // Voice join/leave sounds
-  sock.on('voice_peer_joined', ({ socketId, username }) => { playSound('join'); createOffer(socketId, false); });
-  sock.on('voice_peer_left', ({ socketId }) => { playSound('leave'); closePeer(socketId); });
-
-  // WebRTC signaling (global)
-  sock.on('webrtc_offer', ({ from, offer }) => handleOffer(from, offer, false));
-  sock.on('webrtc_answer', ({ from, answer }) => { if (peers[from]) peers[from].setRemoteDescription(answer); });
-  sock.on('webrtc_ice', ({ from, candidate }) => { if (peers[from] && candidate) peers[from].addIceCandidate(candidate).catch(()=>{}); });
-
-  // WebRTC signaling (server)
-  sock.on('server_voice_peer_joined', ({ channelId, socketId }) => { playSound('join'); createOffer(socketId, true); });
-  sock.on('server_voice_peer_left', ({ socketId }) => { playSound('leave'); closePeer(socketId); });
-  sock.on('server_webrtc_offer', ({ from, offer }) => handleOffer(from, offer, true));
-  sock.on('server_webrtc_answer', ({ from, answer }) => { if (peers[from]) peers[from].setRemoteDescription(answer); });
-  sock.on('server_webrtc_ice', ({ from, candidate }) => { if (peers[from] && candidate) peers[from].addIceCandidate(candidate).catch(()=>{}); });
+  sock.on('voice_peer_joined', () => playSound('join'));
+  sock.on('voice_peer_left', () => playSound('leave'));
+  sock.on('server_voice_peer_joined', () => playSound('join'));
+  sock.on('server_voice_peer_left', () => playSound('leave'));
+  sock.on('voice_chunk', ({ from, pcm }) => {
+    playVoiceChunk(from, pcm);
+    if (!speakingUsers[from]) markSpeaking(from, true);
+    clearTimeout(speakingUsers[from]);
+    speakingUsers[from] = setTimeout(() => { delete speakingUsers[from]; markSpeaking(from, false); }, 500);
+  });
+  sock.on('screen_chunk', ({ from, data }) => receiveScreenChunk(from, data));
+  sock.on('screen_stopped', ({ from }) => stopScreenPlayer(from));
 
   // Mute/Deafen state relay
   sock.on('voice_mute_state', ({ socketId, username, muted }) => {
@@ -1326,8 +1387,8 @@ function initSocket() {
   });
 
   // Typing
-  sock.on('user_typing', u => { typingUsers.add(u); renderTyping(); clearTimeout(typingTimer[u]); typingTimer[u]=setTimeout(()=>{typingUsers.delete(u);renderTyping();},3000); });
-  sock.on('user_stop_typing', u => { typingUsers.delete(u); renderTyping(); });
+  sock.on('user_typing', ({ username: u, context }) => { if (context !== view) return; typingUsers.add(u); renderTyping(); clearTimeout(typingTimer[u]); typingTimer[u]=setTimeout(()=>{typingUsers.delete(u);renderTyping();},3000); });
+  sock.on('user_stop_typing', ({ username: u, context }) => { if (context !== view) return; typingUsers.delete(u); renderTyping(); });
 
   // Kicked
   sock.on('kicked', ({ reason }) => { alert(reason); location.reload(); });
@@ -1443,9 +1504,10 @@ function renderSrvBar() {
 // ── RENDER SIDEBAR ───────────────────────────────────────────
 function renderSidebar() {
   renderSrvBar();
+  $('admin-bar').style.display = myRole === 'admin' ? '' : 'none';
   const scroll = $('s-scroll');
 
-  if (view.startsWith('server:')) {
+  if (view.startsWith('server:') || view.startsWith('voice:server:')) {
     renderServerSidebar(scroll);
   } else {
     renderHomeSidebar(scroll);
@@ -1492,7 +1554,6 @@ function renderHomeSidebar(scroll) {
 
   // Voice bar (global)
   $('voice-bar').style.display = view.startsWith('server:') ? 'none' : 'block';
-  $('voice-label').textContent = 'Vocal global';
 }
 
 function renderServerSidebar(scroll) {
@@ -1527,9 +1588,10 @@ function renderServerSidebar(scroll) {
   html += `<div class="s-label">Channels vocaux ${isOwner?`<button class="s-label-btn" onclick="$('inp-channel-type').value='voice';openModal('modal-create-channel')" title="Cr\u00e9er">+</button>`:''}</div>`;
   for (const ch of voiceChannels) {
     const isInThis = voiceChannelId === ch.id;
-    html += `<div class="s-item ${isInThis?'active':''}" onclick="toggleServerVoice(${sid},${ch.id})">
+    const isViewingThis = view === `voice:server:${sid}:${ch.id}`;
+    html += `<div class="s-item ${isViewingThis||isInThis?'active':''}" onclick="openVoiceChannel(${sid},${ch.id})">
       <span class="ico">&#x1f50a;</span><span class="name">${x(ch.name)}</span>
-      <span class="voice-join-pill">${isInThis ? '\u25A0\uFE0E Quitter' : '\u25B6\uFE0E Rejoindre'}</span>
+      ${isInThis ? `<span class="voice-join-pill">\u25CF En call</span>` : ''}
       ${isOwner && voiceChannels.length > 1 ? `<button class="kick-btn" onclick="event.stopPropagation();deleteChannel(${sid},${ch.id})" title="Supprimer">&times;</button>` : ''}
     </div>`;
     // Show voice users in this channel
@@ -1540,7 +1602,7 @@ function renderServerSidebar(scroll) {
       let muteIcons = '';
       if (muteState.muted) muteIcons += '<span class="v-muted" title="Micro coup\u00e9">\u{1F507}</span>';
       if (muteState.deafened) muteIcons += '<span class="v-muted" title="Son coup\u00e9">\u{1F3A7}</span>';
-      html += `<div class="v-user" style="padding-left:32px"><div class="v-av" style="background:${vcol}">${x(vu.username[0].toUpperCase())}</div>${x(vu.username)}${muteIcons}</div>`;
+      html += `<div class="v-user${speakingUsers[vu.username]?' speaking':''}" data-u="${x(vu.username)}" style="padding-left:32px"><div class="v-av" style="background:${vcol}">${x(vu.username[0].toUpperCase())}</div>${x(vu.username)}${muteIcons}</div>`;
     }
   }
 
@@ -1564,49 +1626,34 @@ function renderServerSidebar(scroll) {
 
 let serverVoiceData = {}; // channelId → [users]
 let serverMembers = {}; // serverId → [members]
+let currentVoiceUsers = []; // global voice users
 
 function renderGlobalVoice(users) {
+  currentVoiceUsers = users;
   const el = $('voice-users');
   el.innerHTML = users.map(u => {
     const col = safeColor(u.avatar_color);
     const muteState = voiceMuteStates[u.username] || {};
     let muteIcons = '';
-    if (muteState.muted) muteIcons += '<span class="v-muted" title="Micro coup\u00e9">\u{1F507}</span>';
-    if (muteState.deafened) muteIcons += '<span class="v-muted" title="Son coup\u00e9">\u{1F3A7}</span>';
-    return `<div class="v-user"><div class="v-av" style="background:${col}">${x(u.username[0].toUpperCase())}</div>${x(u.username)}${muteIcons}</div>`;
+    if (muteState.muted) muteIcons += '<span class="v-muted">\u{1F507}</span>';
+    if (muteState.deafened) muteIcons += '<span class="v-muted">\u{1F3A7}</span>';
+    return `<div class="v-user${speakingUsers[u.username]?' speaking':''}" data-u="${x(u.username)}" style="padding-left:28px"><div class="v-av" style="background:${col}">${x(u.username[0].toUpperCase())}</div>${x(u.username)}${muteIcons}</div>`;
   }).join('');
-  const btn = $('voice-btn');
-  btn.innerHTML = inVoice ? '\u25A0\uFE0E Quitter' : '\u25B6\uFE0E Rejoindre';
-  btn.className = inVoice ? 'vbtn leave' : 'vbtn';
 
-  // Show voice controls when in voice
-  let ctrlEl = document.getElementById('voice-controls');
-  if (inVoice) {
-    if (!ctrlEl) {
-      const bar = $('voice-bar');
-      const top = bar.querySelector('.voice-top');
-      const ctrl = document.createElement('div');
-      ctrl.className = 'voice-controls';
-      ctrl.id = 'voice-controls';
-      ctrl.innerHTML = `
-        <button class="voice-ctrl-btn ${isMuted?'active':''}" onclick="toggleMute()" title="${isMuted?'Activer le micro':'Couper le micro'}">${isMuted?'\u{1F507}':'\u{1F3A4}'}</button>
-        <button class="voice-ctrl-btn ${isDeafened?'active':''}" onclick="toggleDeafen()" title="${isDeafened?'Activer le son':'Couper le son'}">${isDeafened?'\u{1F3A7}\u{274C}':'\u{1F3A7}'}</button>
-      `;
-      top.appendChild(ctrl);
-    } else {
-      ctrlEl.innerHTML = `
-        <button class="voice-ctrl-btn ${isMuted?'active':''}" onclick="toggleMute()" title="${isMuted?'Activer le micro':'Couper le micro'}">${isMuted?'\u{1F507}':'\u{1F3A4}'}</button>
-        <button class="voice-ctrl-btn ${isDeafened?'active':''}" onclick="toggleDeafen()" title="${isDeafened?'Activer le son':'Couper le son'}">${isDeafened?'\u{1F3A7}\u{274C}':'\u{1F3A7}'}</button>
-      `;
-    }
-  } else {
-    if (ctrlEl) ctrlEl.remove();
+  const item = $('voice-channel-item');
+  if (item) {
+    item.className = `s-item${view==='voice:global'||inVoice ? ' active' : ''}`;
+    const pill = $('voice-btn');
+    if (pill) pill.textContent = inVoice ? '\u25CF En call' : '';
   }
+
+  if (view === 'voice:global') renderVoiceView();
 }
 
 function renderServerVoice(serverId, channelId, users) {
   serverVoiceData[channelId] = users;
-  if (view.startsWith(`server:${serverId}`)) renderSidebar();
+  if (view.startsWith(`server:${serverId}`) || view.startsWith(`voice:server:${serverId}`)) renderSidebar();
+  if (view === `voice:server:${serverId}:${channelId}`) renderVoiceView();
 }
 
 // ── VIEWS ────────────────────────────────────────────────────
@@ -1625,7 +1672,7 @@ function toggleMobileSidebar() { $('sidebar').classList.toggle('open'); $('mob-o
 
 function goGlobal() {
   closeMobileSidebar();
-  leaveCurrentVoice();
+  _newMsgCount = 0; typingUsers.clear(); renderTyping();
   view = 'global';
   $('ch-ico').textContent = '#';
   $('ch-name').textContent = 'Lobby';
@@ -1634,6 +1681,7 @@ function goGlobal() {
   cancelReply();
   closeSearchPanel();
   unreadCounts['global'] = 0;
+  showVoiceView(false);
   renderSidebar();
   renderGlobalMsgs();
   updateReadPosition();
@@ -1642,6 +1690,7 @@ function goGlobal() {
 function openDm(username) {
   if (username === me.username) return;
   closeMobileSidebar();
+  _newMsgCount = 0; typingUsers.clear(); renderTyping();
   view = `dm:${username}`;
   dmUnread[username] = 0;
   $('ch-ico').textContent = '@';
@@ -1650,6 +1699,7 @@ function openDm(username) {
   $('ch-actions').innerHTML = '';
   cancelReply();
   closeSearchPanel();
+  showVoiceView(false);
   renderSidebar();
   loadDmHistory(username);
 }
@@ -1669,6 +1719,7 @@ function openServer(serverId) {
 }
 
 function openChannel(serverId, channelId) {
+  _newMsgCount = 0; typingUsers.clear(); renderTyping();
   const srv = servers.find(s => s.id === serverId);
   if (!srv) return;
   const ch = (serverChannels[serverId]||[]).find(c => c.id === channelId);
@@ -1683,6 +1734,7 @@ function openChannel(serverId, channelId) {
   cancelReply();
   closeSearchPanel();
   unreadCounts[`channel:${channelId}`] = 0;
+  showVoiceView(false);
   renderSidebar();
   if (!serverMsgs[channelId]) loadChannelMsgs(serverId, channelId);
   else renderChannelMsgs(channelId);
@@ -1690,11 +1742,12 @@ function openChannel(serverId, channelId) {
 }
 
 function getCurrentServerId() {
-  const m = view.match(/^server:(\d+)/);
+  const m = view.match(/^(?:voice:)?server:(\d+)/);
   return m ? parseInt(m[1]) : null;
 }
 function getCurrentChannelId() {
-  const m = view.match(/^server:\d+:(\d+)/);
+  // only returns for text channel views
+  const m = view.match(/^server:\d+:(\d+)$/);
   return m ? parseInt(m[1]) : null;
 }
 
@@ -1853,7 +1906,7 @@ function appendMsg(m, isDm=false) {
     html += `<button onclick="openEmojiPicker(${m.id})" title="R\u00e9action">\u{1F600}</button>`;
     if (!isDm) html += `<button data-rid="${m.id}" data-ruser="${x(from)}" data-rcontent="${x((m.content||'').slice(0,60))}" onclick="setReplyFromBtn(this)">&#x21a9;</button>`;
     if (canEdit) html += `<button onclick="startEdit(${m.id})">&#x270e;</button>`;
-    if (canDel && !isDm) html += `<button onclick="delMsg(${m.id})">&#x1f5d1;</button>`;
+    if (canDel) html += `<button onclick="delMsg(${m.id})">&#x1f5d1;</button>`;
     html += `</div>`;
   }
 
@@ -2298,7 +2351,7 @@ function send() {
   if (!val) return;
   inp.value = '';
   inp.style.height = 'auto';
-  sock.emit('stop_typing');
+  sock.emit('stop_typing', { context: view });
   closeMentionAC();
 
   if (view === 'global') {
@@ -2345,7 +2398,7 @@ function onKey(e) {
 
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); return; }
   if (e.key === 'Escape') { cancelReply(); closeMentionAC(); return; }
-  if (Date.now() - typingSent > 2000) { typingSent = Date.now(); sock.emit('typing'); }
+  if (Date.now() - typingSent > 2000) { typingSent = Date.now(); sock.emit('typing', { context: view }); }
 }
 function onInp(el) { el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
 
@@ -2392,6 +2445,7 @@ function startEdit(id) {
 function delMsg(id) {
   if (view === 'global') sock.emit('delete_message', { id });
   else if (view.match(/^server:\d+/)) sock.emit('server_delete_message', { serverId: getCurrentServerId(), id });
+  else if (view.match(/^dm:/)) sock.emit('delete_pm', { id });
 }
 
 // Patch
@@ -2433,6 +2487,104 @@ function renderTyping() {
 // Kick
 function kickUser(username) { if (confirm(`Expulser ${username} ?`)) sock.emit('kick_user', { username }); }
 
+// ── VOICE VIEW NAVIGATION ─────────────────────────────────────
+function showVoiceView(show) {
+  $('voice-view').style.display = show ? 'flex' : 'none';
+  $('chat-area').style.display = show ? 'none' : 'flex';
+}
+
+function openGlobalVoice() {
+  view = 'voice:global';
+  $('ch-ico').textContent = '\u{1F50A}';
+  $('ch-name').textContent = 'Vocal global';
+  $('ch-sub').textContent = 'G\u00e9n\u00e9ral';
+  $('ch-actions').innerHTML = '';
+  closeMobileSidebar();
+  showVoiceView(true);
+  renderSidebar();
+  renderVoiceView();
+}
+
+function openVoiceChannel(serverId, channelId) {
+  const srv = servers.find(s => s.id === serverId);
+  const ch = (serverChannels[serverId]||[]).find(c => c.id === channelId);
+  if (!srv || !ch) return;
+  sock.emit('join_server_room', { serverId });
+  view = `voice:server:${serverId}:${channelId}`;
+  $('ch-ico').textContent = '\u{1F50A}';
+  $('ch-name').textContent = `${srv.name} / ${ch.name}`;
+  $('ch-sub').textContent = '';
+  $('ch-actions').innerHTML = '';
+  closeMobileSidebar();
+  cancelReply();
+  closeSearchPanel();
+  showVoiceView(true);
+  renderSidebar();
+  renderVoiceView();
+}
+
+function renderVoiceView() {
+  let channelName = '', users = [], isInThis = false;
+  if (view === 'voice:global') {
+    channelName = 'G\u00e9n\u00e9ral';
+    users = currentVoiceUsers;
+    isInThis = inVoice;
+  } else {
+    const m = view.match(/^voice:server:(\d+):(\d+)$/);
+    if (!m) return;
+    const sid = parseInt(m[1]), chId = parseInt(m[2]);
+    const ch = (serverChannels[sid]||[]).find(c => c.id === chId);
+    channelName = ch ? ch.name : 'Vocal';
+    users = serverVoiceData[chId] || [];
+    isInThis = voiceChannelId === chId;
+  }
+
+  $('vv-channel-name').textContent = channelName;
+  $('vv-channel-sub').textContent = users.length
+    ? `${users.map(u=>u.username).join(', ')} ${users.length>1?'sont':'est'} en vocal`
+    : 'Personne en vocal';
+
+  $('vv-cards').innerHTML = users.map(u => {
+    const col = safeColor(u.avatar_color);
+    const ms = voiceMuteStates[u.username] || {};
+    const muteIcon = ms.muted ? `<div class="vv-card-mute">\u{1F507}</div>` : '';
+    const speaking = speakingUsers[u.username] ? ' speaking' : '';
+    return `<div class="vv-card${speaking}">
+      <div class="vv-card-av" style="background:${col}">${x(u.username[0].toUpperCase())}</div>
+      <div class="vv-card-name">${x(u.username)}</div>
+      ${muteIcon}
+    </div>`;
+  }).join('');
+
+  const btn = $('vv-join-btn');
+  btn.textContent = isInThis ? 'Quitter' : 'Rejoindre';
+  btn.className = isInThis ? 'vv-join-btn leave' : 'vv-join-btn';
+
+  const ctrl = $('vv-ctrl');
+  if (isInThis) {
+    ctrl.style.display = 'flex';
+    ctrl.innerHTML = `
+      <button class="voice-ctrl-btn ${isMuted?'active':''}" onclick="toggleMute()" title="${isMuted?'Activer micro':'Couper micro'}">${isMuted?'\u{1F507}':'\u{1F3A4}'}</button>
+      <button class="voice-ctrl-btn ${isDeafened?'active':''}" onclick="toggleDeafen()" title="${isDeafened?'Activer son':'Couper son'}">${isDeafened?'\u{1F3A7}\u274C':'\u{1F3A7}'}</button>
+      <button class="voice-ctrl-btn ${sharingScreen?'active':''}" onclick="startScreenShare()" title="${sharingScreen?'Arr\u00eater le partage':'Partager l\'\u00e9cran'}">\u{1F5A5}\uFE0F</button>
+    `;
+  } else {
+    ctrl.style.display = 'none';
+  }
+}
+
+function voiceViewJoin() {
+  if (view === 'voice:global') {
+    if (inVoice) leaveGlobalVoice(); else joinGlobalVoice();
+  } else {
+    const m = view.match(/^voice:server:(\d+):(\d+)$/);
+    if (!m) return;
+    const sid = parseInt(m[1]), chId = parseInt(m[2]);
+    if (voiceChannelId === chId) leaveServerVoice(sid, chId);
+    else { leaveCurrentVoice(); joinServerVoice(sid, chId); }
+  }
+}
+
 // ── VOICE (GLOBAL) ───────────────────────────────────────────
 function toggleVoice() {
   if (inVoice) leaveGlobalVoice();
@@ -2441,27 +2593,25 @@ function toggleVoice() {
 
 async function joinGlobalVoice() {
   try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showToast('API media non disponible (HTTPS requis)');
-      return;
-    }
-    localStr = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 } });
+    await startVoiceCapture();
     sock.emit('join_voice');
     inVoice = true;
     isMuted = false;
     isDeafened = false;
-    renderSidebar();
+    renderSelfBar();
+    if (view === 'voice:global') renderVoiceView();
   } catch(e) { showToast('Micro: ' + (e.name || '') + ' ' + (e.message || 'non disponible')); console.error('[voice]', e); }
 }
 
 function leaveGlobalVoice() {
   sock.emit('leave_voice');
-  if (localStr) { localStr.getTracks().forEach(t=>t.stop()); localStr=null; }
-  Object.keys(peers).forEach(closePeer);
+  stopVoiceCapture();
+  stopAllVoicePlayback();
   inVoice = false;
   isMuted = false;
   isDeafened = false;
-  renderSidebar();
+  renderSelfBar();
+  if (view === 'voice:global') renderVoiceView();
 }
 
 // ── VOICE (SERVER/CHANNEL) ───────────────────────────────────
@@ -2476,129 +2626,244 @@ function toggleServerVoice(serverId, channelId) {
 
 async function joinServerVoice(serverId, channelId) {
   try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showToast('API media non disponible (HTTPS requis)');
-      return;
-    }
-    localStr = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 } });
+    await startVoiceCapture();
     sock.emit('server_join_voice', { serverId, channelId });
     voiceChannelId = channelId;
     isMuted = false;
     isDeafened = false;
+    renderSelfBar();
     renderSidebar();
+    if (view === `voice:server:${serverId}:${channelId}`) renderVoiceView();
   } catch(e) { showToast('Micro: ' + (e.name || '') + ' ' + (e.message || 'non disponible')); console.error('[voice]', e); }
 }
 
 function leaveServerVoice(serverId, channelId) {
   sock.emit('server_leave_voice', { serverId, channelId });
-  if (localStr) { localStr.getTracks().forEach(t=>t.stop()); localStr=null; }
-  Object.keys(peers).forEach(closePeer);
+  stopVoiceCapture();
+  stopAllVoicePlayback();
   voiceChannelId = null;
   isMuted = false;
   isDeafened = false;
+  renderSelfBar();
   renderSidebar();
+  if (view.startsWith('voice:')) renderVoiceView();
 }
 
 function leaveCurrentVoice() {
   if (inVoice) leaveGlobalVoice();
-  if (voiceChannelId) {
+  else if (voiceChannelId) {
     const sid = getCurrentServerId();
     if (sid) leaveServerVoice(sid, voiceChannelId);
-    else { // cleanup anyway
-      if (localStr) { localStr.getTracks().forEach(t=>t.stop()); localStr=null; }
-      Object.keys(peers).forEach(closePeer);
-      voiceChannelId = null;
-    }
+    else { stopVoiceCapture(); stopAllVoicePlayback(); voiceChannelId = null; }
   }
 }
 
 // ── MUTE / DEAFEN ────────────────────────────────────────────
 function toggleMute() {
   isMuted = !isMuted;
-  if (localStr) {
-    localStr.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
-  }
+  if (voiceCapture) voiceCapture.stream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
   if (sock) sock.emit('voice_mute_state', { muted: isMuted });
-  // Update controls
-  renderGlobalVoice([]); // re-render will be triggered by voice_users too
-  renderSidebar();
+  renderSelfBar();
+  if (view.startsWith('voice:')) renderVoiceView();
 }
 
 function toggleDeafen() {
   isDeafened = !isDeafened;
-  // Mute all peer audio
-  Object.values(peerAudio).forEach(audio => {
-    audio.muted = isDeafened;
-  });
-  // Auto-mute when deafened
   if (isDeafened && !isMuted) {
     isMuted = true;
-    if (localStr) {
-      localStr.getAudioTracks().forEach(t => { t.enabled = false; });
-    }
+    if (voiceCapture) voiceCapture.stream.getAudioTracks().forEach(t => { t.enabled = false; });
     if (sock) sock.emit('voice_mute_state', { muted: true });
   }
-  // Un-mute when un-deafen (restore to non-muted)
   if (!isDeafened && isMuted) {
     isMuted = false;
-    if (localStr) {
-      localStr.getAudioTracks().forEach(t => { t.enabled = true; });
-    }
+    if (voiceCapture) voiceCapture.stream.getAudioTracks().forEach(t => { t.enabled = true; });
     if (sock) sock.emit('voice_mute_state', { muted: false });
   }
   if (sock) sock.emit('voice_deafen_state', { deafened: isDeafened });
-  renderSidebar();
+  renderSelfBar();
+  if (view.startsWith('voice:')) renderVoiceView();
 }
 
-// ── WEBRTC ───────────────────────────────────────────────────
-function closePeer(id) {
-  if (peers[id]) { peers[id].close(); delete peers[id]; }
-  if (peerAudio[id]) { peerAudio[id].remove(); delete peerAudio[id]; }
-}
-
-function newPeer(id, isServer) {
-  const pc = new RTCPeerConnection(ICE);
-  if (localStr) localStr.getTracks().forEach(t => pc.addTrack(t, localStr));
-  pc.onicecandidate = e => {
-    if (!e.candidate) return;
-    const evt = isServer ? 'server_webrtc_ice' : 'webrtc_ice';
-    const data = { to: id, candidate: e.candidate };
-    if (isServer) data.serverId = getCurrentServerId() || 0;
-    sock.emit(evt, data);
+// ── PCM VOICE ─────────────────────────────────────────────────
+async function startVoiceCapture() {
+  if (voiceCapture) stopVoiceCapture();
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    video: false
+  });
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+  const src = audioCtx.createMediaStreamSource(stream);
+  const compressor = audioCtx.createDynamicsCompressor();
+  compressor.threshold.value = -24;
+  compressor.knee.value = 30;
+  compressor.ratio.value = 12;
+  compressor.attack.value = 0.003;
+  compressor.release.value = 0.25;
+  const processor = audioCtx.createScriptProcessor(1024, 1, 1);
+  src.connect(compressor);
+  compressor.connect(processor);
+  processor.connect(audioCtx.destination);
+  processor.onaudioprocess = (e) => {
+    if (isMuted) return;
+    const f32 = e.inputBuffer.getChannelData(0);
+    let rms = 0;
+    for (let i = 0; i < f32.length; i++) rms += f32[i] * f32[i];
+    if (Math.sqrt(rms / f32.length) < 0.008) return;
+    const i16 = new Int16Array(f32.length);
+    for (let i = 0; i < f32.length; i++) i16[i] = Math.max(-32768, Math.min(32767, f32[i] * 32768));
+    sock.emit('voice_chunk', i16.buffer);
   };
-  pc.onconnectionstatechange = () => { if (['failed','disconnected','closed'].includes(pc.connectionState)) closePeer(id); };
-  pc.ontrack = e => {
-    if (peerAudio[id]) return;
-    const audio = new Audio();
-    audio.srcObject = e.streams[0];
-    audio.autoplay = true;
-    if (isDeafened) audio.muted = true;
-    document.body.appendChild(audio);
-    peerAudio[id] = audio;
+  voiceCapture = { stream, audioCtx, processor, src, compressor };
+}
+
+function stopVoiceCapture() {
+  if (!voiceCapture) return;
+  try { voiceCapture.processor.disconnect(); } catch {}
+  try { voiceCapture.compressor.disconnect(); } catch {}
+  try { voiceCapture.src.disconnect(); } catch {}
+  voiceCapture.stream.getTracks().forEach(t => t.stop());
+  voiceCapture.audioCtx.close().catch(() => {});
+  voiceCapture = null;
+}
+
+function stopAllVoicePlayback() {
+  if (voicePlayCtx) { voicePlayCtx.close().catch(() => {}); voicePlayCtx = null; }
+  voiceNextTime = {};
+}
+
+function playVoiceChunk(from, pcm) {
+  if (isDeafened || from === (me && me.username)) return;
+  if (!voicePlayCtx || voicePlayCtx.state === 'closed') {
+    voicePlayCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    voiceNextTime = {};
+  }
+  if (voicePlayCtx.state === 'suspended') voicePlayCtx.resume();
+  const ctx = voicePlayCtx;
+  const i16 = new Int16Array(pcm);
+  const f32 = new Float32Array(i16.length);
+  for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
+  const buf = ctx.createBuffer(1, f32.length, 16000);
+  buf.copyToChannel(f32, 0);
+  const node = ctx.createBufferSource();
+  node.buffer = buf;
+  const gain = ctx.createGain();
+  gain.gain.value = 1.5;
+  node.connect(gain);
+  gain.connect(ctx.destination);
+  const now = ctx.currentTime;
+  if (!voiceNextTime[from] || voiceNextTime[from] < now + 0.01) voiceNextTime[from] = now + 0.08;
+  node.start(voiceNextTime[from]);
+  voiceNextTime[from] += buf.duration;
+}
+
+// ── SPEAKING INDICATOR ───────────────────────────────────────
+function markSpeaking(username, on) {
+  // Update vv-cards in voice view
+  document.querySelectorAll('.vv-card').forEach(card => {
+    const nameEl = card.querySelector('.vv-card-name');
+    if (nameEl && nameEl.textContent === username) card.classList.toggle('speaking', on);
+  });
+  // Update sidebar v-user items
+  document.querySelectorAll(`.v-user[data-u="${CSS.escape(username)}"]`).forEach(el => {
+    el.classList.toggle('speaking', on);
+  });
+}
+
+// ── SCREEN SHARE ─────────────────────────────────────────────
+async function startScreenShare() {
+  if (sharingScreen) { stopScreenShare(); return; }
+  try {
+    let stream;
+    if (window.electronAPI && window.electronAPI.getScreenSources) {
+      // Electron: use desktopCapturer via IPC
+      const sources = await window.electronAPI.getScreenSources();
+      if (!sources || !sources.length) { showToast('Aucune source trouvée'); return; }
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sources[0].id, maxWidth: 1920, maxHeight: 1080 } }
+      });
+    } else {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: { width: 1920, height: 1080 }, audio: false });
+    }
+    startScreenCapture(stream);
+  } catch (e) {
+    showToast('Partage d\'écran annulé');
+  }
+}
+
+function startScreenCapture(stream) {
+  sharingScreen = true;
+  screenCapture = stream;
+  renderVoiceView();
+
+  const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 1_500_000 });
+  recorder.ondataavailable = async (e) => {
+    if (e.data && e.data.size > 0 && sock) {
+      const buf = await e.data.arrayBuffer();
+      sock.emit('screen_chunk', buf);
+    }
   };
-  peers[id] = pc;
-  return pc;
+  recorder.start(150);
+  screenCapture._recorder = recorder;
+
+  stream.getVideoTracks()[0].onended = () => stopScreenShare();
 }
 
-async function createOffer(id, isServer) {
-  const pc = newPeer(id, isServer);
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  const evt = isServer ? 'server_webrtc_offer' : 'webrtc_offer';
-  const data = { to: id, offer };
-  if (isServer) data.serverId = getCurrentServerId() || 0;
-  sock.emit(evt, data);
+function stopScreenShare() {
+  if (!sharingScreen) return;
+  sharingScreen = false;
+  if (screenCapture) {
+    if (screenCapture._recorder) { try { screenCapture._recorder.stop(); } catch {} }
+    screenCapture.getTracks().forEach(t => t.stop());
+    screenCapture = null;
+  }
+  if (sock) sock.emit('stop_screen');
+  renderVoiceView();
 }
 
-async function handleOffer(from, offer, isServer) {
-  const pc = newPeer(from, isServer);
-  await pc.setRemoteDescription(offer);
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-  const evt = isServer ? 'server_webrtc_answer' : 'webrtc_answer';
-  const data = { to: from, answer };
-  if (isServer) data.serverId = getCurrentServerId() || 0;
-  sock.emit(evt, data);
+function receiveScreenChunk(from, data) {
+  if (!screenPlayers[from]) {
+    const video = document.createElement('video');
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
+    video.controls = false;
+    const label = document.createElement('div');
+    label.className = 'screen-share-label';
+    label.textContent = from + ' partage son écran';
+    const container = $('vv-screen-container');
+    if (container) { container.appendChild(label); container.appendChild(video); }
+
+    const ms = new MediaSource();
+    video.src = URL.createObjectURL(ms);
+    const player = { ms, sb: null, queue: [], appending: false, video, label };
+    screenPlayers[from] = player;
+
+    ms.addEventListener('sourceopen', () => {
+      const sb = ms.addSourceBuffer('video/webm;codecs=vp8');
+      player.sb = sb;
+      sb.addEventListener('updateend', () => { player.appending = false; flushScreenQueue(from); });
+      flushScreenQueue(from);
+    }, { once: true });
+  }
+  screenPlayers[from].queue.push(data);
+  flushScreenQueue(from);
+}
+
+function flushScreenQueue(from) {
+  const p = screenPlayers[from];
+  if (!p || !p.sb || p.appending || p.sb.updating || !p.queue.length) return;
+  p.appending = true;
+  try { p.sb.appendBuffer(p.queue.shift()); } catch { p.appending = false; }
+}
+
+function stopScreenPlayer(from) {
+  const p = screenPlayers[from];
+  if (!p) return;
+  try { p.video.src = ''; } catch {}
+  p.video.remove();
+  if (p.label) p.label.remove();
+  delete screenPlayers[from];
 }
 
 // ── ADMIN ────────────────────────────────────────────────────
@@ -2617,10 +2882,12 @@ async function refreshAdminUsers() {
     $('admin-content').innerHTML = users.map(u => {
       const isSelf = u.username === me.username;
       const isAdmin = u.role === 'admin';
+      const isOnline = onlineList.some(o => o.username === u.username);
       return `<div class="admin-row">
-        <span class="name">${x(u.username)} ${isAdmin?'\u{1F451}':''} ${u.banned_at?'<span style="color:var(--red);font-size:10px">BANNI</span>':''}</span>
+        <span class="name">${x(u.username)} ${isAdmin?'\u{1F451}':''} ${isOnline?'<span style="color:var(--green);font-size:10px">EN LIGNE</span>':''} ${u.banned_at?'<span style="color:var(--red);font-size:10px">BANNI</span>':''}</span>
         ${!isSelf ? `
           ${!isAdmin ? `<button class="${u.banned_at?'':'danger'}" data-username="${x(u.username)}" data-ban="${!u.banned_at}" onclick="adminBanFromBtn(this)">${u.banned_at?'D\u00e9bannir':'Bannir'}</button>` : ''}
+          ${isOnline ? `<button onclick="adminKick('${x(u.username)}')" title="D\u00e9connecter">&#x23CF;</button>` : ''}
           <button data-username="${x(u.username)}" data-role="${isAdmin?'user':'admin'}" onclick="adminSetRoleFromBtn(this)">\u2192 ${isAdmin?'User':'Admin'}</button>
         ` : ''}
       </div>`;
@@ -2650,8 +2917,13 @@ async function adminBan(username, ban) {
 async function adminSetRole(username, role) {
   try { await fetch('/api/admin/role', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,role}) }); refreshAdminUsers(); } catch {}
 }
+function adminKick(username) {
+  if (sock) sock.emit('kick_user', { username });
+  showToast(username + ' d\u00e9connect\u00e9');
+  setTimeout(refreshAdminUsers, 500);
+}
+
 async function adminDeleteServer(id) {
-  // Use the admin endpoint - just delete from servers table
   if (!confirm('Supprimer ce serveur ?')) return;
   showToast('Serveur supprim\u00e9');
   refreshAdminServers();
