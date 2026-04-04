@@ -58,6 +58,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,.12) 0%, transparent 70%), var(--bg);
   z-index: 99;
+  transition: transform .7s cubic-bezier(.86,0,.07,1), opacity .6s;
 }
 .auth-box {
   width: 380px;
@@ -137,8 +138,9 @@ body {
 .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
 
 /* ── LAYOUT ── */
-#app { display: none; height: 100vh; width: 100vw; flex-direction: row; overflow: hidden; }
+#app { display: none; height: 100vh; width: 100vw; flex-direction: row; overflow: hidden; opacity: 0; transform: scale(1.04); transition: opacity .6s ease, transform .6s cubic-bezier(.19,1,.22,1); }
 #app.on { display: flex; }
+#app.visible { opacity: 1; transform: scale(1); }
 
 /* ── SERVER BAR ── */
 .srv-bar {
@@ -249,8 +251,8 @@ body {
   position: relative;
   white-space: nowrap; overflow: hidden;
 }
-.s-item:hover { background: var(--surface3); color: var(--text); }
-.s-item.active { background: var(--surface3); color: var(--text); }
+.s-item:hover { background: var(--surface3); color: var(--text); transform: translateX(3px); }
+.s-item.active { background: var(--surface3); color: var(--text); transform: translateX(3px); }
 .s-item .ico { font-size: 18px; color: var(--muted); flex-shrink: 0; }
 .s-item .badge {
   margin-left: auto;
@@ -432,6 +434,11 @@ body {
   display: flex; flex-direction: column;
   padding: 2px 16px; border-radius: 0;
   transition: background .05s; position: relative;
+  animation: msgIn .25s cubic-bezier(.23,1,.32,1) backwards;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 .msg:hover { background: rgba(255,255,255,.04); }
 .msg .m-head { display: flex; align-items: baseline; gap: 7px; margin-bottom: 1px; }
@@ -1102,7 +1109,7 @@ async function doAuth(e) {
     }
     if (!r.ok) throw new Error(d.error||'Erreur');
     me = d;
-    $('auth').style.display='none';
+    hideAuth();
     boot();
   } catch(err) {
     $('auth-err').textContent = err.message;
@@ -1114,7 +1121,7 @@ async function checkSession() {
     const r = await fetch('/auth/me');
     if (!r.ok) return;
     me = await r.json();
-    $('auth').style.display='none';
+    hideAuth();
     boot();
   } catch {}
 }
@@ -1168,9 +1175,18 @@ async function disable2fa() {
   showToast('2FA d\u00e9sactiv\u00e9');
 }
 
+function hideAuth() {
+  const el = $('auth');
+  el.style.transform = 'translateY(-100%) skewY(4deg)';
+  el.style.opacity = '0';
+  setTimeout(() => { el.style.display = 'none'; }, 650);
+}
+
 // ── BOOT ─────────────────────────────────────────────────────
 async function boot() {
-  $('app').classList.add('on');
+  const appEl = $('app');
+  appEl.classList.add('on');
+  requestAnimationFrame(() => requestAnimationFrame(() => appEl.classList.add('visible')));
   myRole = me.role || 'user';
 
   initAudio();
@@ -2937,6 +2953,17 @@ async function adminDeleteServer(id) {
   showToast('Serveur supprim\u00e9');
   refreshAdminServers();
 }
+
+// ── PARALLAX LOGIN ───────────────────────────────────────────
+document.addEventListener('mousemove', e => {
+  const auth = $('auth');
+  if (!auth || auth.style.display === 'none') return;
+  const box = auth.querySelector('.auth-box');
+  if (!box) return;
+  const mx = (e.clientX - window.innerWidth / 2) / 60;
+  const my = (e.clientY - window.innerHeight / 2) / 60;
+  box.style.transform = `translate(${mx}px, ${my}px) translateY(0)`;
+});
 
 // ── INIT ─────────────────────────────────────────────────────
 checkSession();
