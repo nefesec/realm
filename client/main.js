@@ -3,13 +3,15 @@ const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { spawn } = require('child_process');
 
+// Ignore self-signed cert for localhost on all platforms (needed for electron-updater)
+app.commandLine.appendSwitch('ignore-certificate-errors');
+
 // Linux: enable media device access
 if (process.platform === 'linux') {
   app.disableHardwareAcceleration(); // prevent black screen on Linux (GPU process crash)
   app.commandLine.appendSwitch('enable-features', 'AudioContextAutoplayByUserActivation,WebRTCPipeWireCapturer');
   app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox,AudioServiceOutOfProcess');
   app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
-  app.commandLine.appendSwitch('ignore-certificate-errors');
   app.commandLine.appendSwitch('disable-setuid-sandbox');
 }
 const http = require('http');
@@ -156,20 +158,32 @@ app.whenReady().then(() => {
   createTray();
   createWindow();
 
-  // Auto-update depuis le serveur local (pas GitHub)
-  try {
-    const serverEnvRaw = fs.readFileSync(path.join(__dirname, '..', 'server', '.env'), 'utf8');
-    const tokenLine = serverEnvRaw.split('\n').find(l => l.startsWith('UPDATE_TOKEN='));
-    const updateToken = tokenLine ? tokenLine.split('=').slice(1).join('=').trim() : '';
-    if (updateToken) {
-      if (SERVER_URL.startsWith('https')) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  // Auto-update depuis le serveur local — récupère le token dynamiquement
+  setTimeout(async () => {
+    try {
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+      const protocol = require('http');
+      const opts = new URL(`${SERVER_URL}/api/system/update-token`);
+      const mod = opts.protocol === 'https:' ? require('https') : require('http');
+      const updateToken = await new Promise((resolve, reject) => {
+        const req = mod.get(opts, { rejectUnauthorized: false }, (res) => {
+          let data = '';
+          res.on('data', c => data += c);
+          res.on('end', () => {
+            try { resolve(JSON.parse(data).token || ''); } catch { resolve(''); }
+          });
+        });
+        req.on('error', reject);
+        req.setTimeout(5000, () => { req.destroy(); reject(new Error('timeout')); });
+      });
+      if (!updateToken) return;
       autoUpdater.requestHeaders = { 'x-update-token': updateToken };
       autoUpdater.setFeedURL({ provider: 'generic', url: `${SERVER_URL}/updates` });
       autoUpdater.autoDownload = true;
       autoUpdater.autoInstallOnAppQuit = true;
       autoUpdater.checkForUpdates().catch(() => {});
-    }
-  } catch {}
+    } catch {}
+  }, 4000); // attendre que le serveur soit prêt
 
   autoUpdater.on('update-downloaded', () => {
     if (win) win.webContents.executeJavaScript(`showToast && showToast('Mise à jour téléchargée — sera installée à la prochaine fermeture.')`).catch(() => {});

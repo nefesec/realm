@@ -121,6 +121,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ── AUTO-UPDATE ENDPOINT ──────────────────────────────────────
 const UPDATE_TOKEN = process.env.UPDATE_TOKEN;
+
+// Expose token to local clients so the Electron app doesn't need to read .env
+app.get('/api/system/update-token', (req, res) => {
+  const ip = req.ip || req.socket?.remoteAddress || '';
+  if (!ip.includes('127.0.0.1') && !ip.includes('::1') && ip !== '::ffff:127.0.0.1') {
+    return res.status(403).end();
+  }
+  res.json({ token: UPDATE_TOKEN || '' });
+});
+
 app.use('/updates', (req, res, next) => {
   if (!UPDATE_TOKEN || req.headers['x-update-token'] !== UPDATE_TOKEN) {
     return res.status(401).end();
