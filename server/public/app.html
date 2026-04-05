@@ -797,59 +797,45 @@ body {
 }
 
 @media (max-width: 600px) {
-  /* App takes full screen, no flex-column weirdness */
   #app { flex-direction: row; }
 
-  /* ── BOTTOM NAV BAR ── */
-  .srv-bar {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-    width: 100% !important; min-width: 100% !important; max-width: 100% !important;
-    height: 64px;
-    flex-direction: row; overflow-x: auto; overflow-y: hidden;
-    justify-content: flex-start; align-items: center;
-    border-right: none; border-top: 1px solid var(--border);
-    padding: 0 12px; gap: 6px;
-    background: rgba(0,0,0,.95);
-    backdrop-filter: blur(12px);
-    scrollbar-width: none;
-  }
-  .srv-bar::-webkit-scrollbar { display: none; }
+  /* srv-bar déplacé dans .sidebar via JS → caché à son emplacement original */
+  .srv-bar { display: none !important; }
 
-  /* Pill indicator → dot under icon on mobile */
-  .srv-icon::before { display: none; }
-  .srv-icon.active::after {
-    content: '';
-    position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
-    width: 4px; height: 4px; border-radius: 50%;
-    background: var(--accent);
-  }
-
-  .srv-icon {
-    width: 44px; height: 44px; font-size: 15px; flex-shrink: 0;
-  }
-  .srv-sep { width: 1px; height: 28px; flex-shrink: 0; margin: 0 2px; }
-
-  /* Spacer push add/join to the right */
-  .srv-bar > [style*="margin-top:auto"] { display: none; }
-
-  /* Sidebar slides in over everything, full height minus bottom bar */
+  /* Sidebar = panel 2 colonnes qui slide depuis la gauche */
   .sidebar {
-    width: 80% !important; max-width: 300px;
+    width: 88% !important; max-width: 340px;
     position: fixed; z-index: 30;
-    left: -100%; top: 0; bottom: 64px;
+    left: -100%; top: 0; bottom: 0;
     transition: left .25s cubic-bezier(.4,0,.2,1);
+    flex-direction: row !important;
+    overflow: hidden;
   }
   .sidebar.open { left: 0; }
 
-  /* Chat fills full screen, padding for bottom bar */
-  .main {
-    width: 100%; height: 100vh;
-    padding-bottom: 64px;
+  /* Colonne serveurs (déplacée en JS) */
+  .sidebar > #srv-bar {
+    display: flex !important;
+    position: static !important;
+    width: 64px !important; min-width: 64px !important; max-width: 64px !important;
+    height: 100% !important;
+    flex-direction: column !important;
+    overflow-y: auto !important; overflow-x: hidden !important;
+    border-right: 1px solid var(--border) !important;
+    padding: 10px 0 !important; gap: 8px !important;
+    background: #000 !important;
+    flex-shrink: 0;
   }
 
-  /* Overlay covers chat but not bottom bar */
-  .mob-overlay { bottom: 64px; }
+  /* Colonne channels prend le reste */
+  .sidebar > :not(#srv-bar) { flex-shrink: 1; min-width: 0; }
 
+  /* Pill indicator garde le comportement vertical */
+  .srv-icon::before { display: block; }
+  .srv-icon { width: 44px !important; height: 44px !important; font-size: 15px !important; }
+  .srv-sep { width: 28px; height: 1px; margin: 2px 0; }
+
+  .main { width: 100%; height: 100vh; }
   .mob-toggle { display: block !important; }
   .search-panel { width: 100%; }
   .sidebar .s-head { display: flex; justify-content: space-between; }
@@ -3055,6 +3041,27 @@ document.addEventListener('mousemove', e => {
 
 // ── INIT ─────────────────────────────────────────────────────
 checkSession();
+
+// ── MOBILE : déplacer #srv-bar dans #sidebar ─────────────────
+(function() {
+  function isMobile() { return window.innerWidth <= 600; }
+  const srvBar  = document.getElementById('srv-bar');
+  const sidebar = document.getElementById('sidebar');
+  let moved = false;
+
+  function applyMobile() {
+    if (isMobile() && !moved) {
+      sidebar.insertBefore(srvBar, sidebar.firstChild);
+      moved = true;
+    } else if (!isMobile() && moved) {
+      document.getElementById('app').insertBefore(srvBar, sidebar);
+      moved = false;
+    }
+  }
+
+  applyMobile();
+  window.addEventListener('resize', applyMobile);
+})();
 </script>
 </body>
 </html>
