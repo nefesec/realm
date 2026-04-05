@@ -3042,19 +3042,33 @@ document.addEventListener('mousemove', e => {
 // ── INIT ─────────────────────────────────────────────────────
 checkSession();
 
-// ── MOBILE : déplacer #srv-bar dans #sidebar ─────────────────
+// ── MOBILE : sidebar 2 colonnes (srv-bar | channel-col) ──────
 (function() {
   function isMobile() { return window.innerWidth <= 600; }
   const srvBar  = document.getElementById('srv-bar');
   const sidebar = document.getElementById('sidebar');
+  const app     = document.getElementById('app');
   let moved = false;
 
   function applyMobile() {
     if (isMobile() && !moved) {
-      sidebar.insertBefore(srvBar, sidebar.firstChild);
+      // Créer un wrapper flex-column pour le contenu channel
+      const col = document.createElement('div');
+      col.id = 'mob-ch-col';
+      col.style.cssText = 'flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;';
+      // Déplacer tous les enfants actuels de sidebar dans col
+      while (sidebar.firstChild) col.appendChild(sidebar.firstChild);
+      // Ajouter srv-bar en premier, puis col
+      sidebar.appendChild(srvBar);
+      sidebar.appendChild(col);
       moved = true;
     } else if (!isMobile() && moved) {
-      document.getElementById('app').insertBefore(srvBar, sidebar);
+      const col = document.getElementById('mob-ch-col');
+      if (col) {
+        while (col.firstChild) sidebar.appendChild(col.firstChild);
+        col.remove();
+      }
+      app.insertBefore(srvBar, sidebar);
       moved = false;
     }
   }
