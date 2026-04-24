@@ -839,6 +839,15 @@ body {
   .mob-toggle { display: block !important; }
   .search-panel { width: 100%; }
   .sidebar .s-head { display: flex; justify-content: space-between; }
+
+  /* Voice join pill toujours visible (pas de hover sur mobile) */
+  .s-item .voice-join-pill { opacity: 1 !important; pointer-events: auto !important; }
+
+  /* Self bar compact pour tenir dans mob-ch-col étroit */
+  .self-bar { padding: 0 6px; gap: 2px; }
+  .self-info { display: none; }
+  .self-av { width: 28px; height: 28px; font-size: 11px; }
+  .self-voice-btn, .sound-btn, .logout-btn { width: 28px; height: 28px; font-size: 14px; }
 }
 </style>
 </head>
@@ -932,6 +941,9 @@ body {
       <button class="admin-tab" onclick="adminTab('servers')">Serveurs</button>
     </div>
     <div id="admin-content"></div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <button class="danger" style="width:100%;font-size:12px" onclick="adminClearGlobal()">&#x1F5D1; Vider tous les messages du g&eacute;n&eacute;ral</button>
+    </div>
   </div>
 </div>
 
@@ -939,8 +951,8 @@ body {
 <div class="drop-overlay" id="drop-overlay">D&eacute;poser le fichier ici</div>
 
 <!-- ── APP ── -->
-<div class="mob-overlay" id="mob-overlay" onclick="closeMobileSidebar()"></div>
 <div id="app">
+<div class="mob-overlay" id="mob-overlay" onclick="closeMobileSidebar()"></div>
 
   <!-- Server bar -->
   <div class="srv-bar" id="srv-bar">
@@ -1442,6 +1454,19 @@ function initSocket() {
       serverChannels[serverId] = serverChannels[serverId].filter(c => c.id !== channelId);
       if (view.startsWith(`server:${serverId}`)) renderSidebar();
     }
+  });
+
+  sock.on('server_deleted', ({ serverId }) => {
+    servers = servers.filter(s => s.id !== serverId);
+    delete serverChannels[serverId];
+    delete serverMsgs[serverId];
+    if (view.startsWith(`server:${serverId}`)) goGlobal();
+    else renderSrvBar();
+  });
+
+  sock.on('global_cleared', () => {
+    globalMsgs = []; globalLastId = 0;
+    if (view === 'global') renderGlobalMsgs();
   });
 
   // Voice
@@ -3023,9 +3048,24 @@ function adminKick(username) {
 }
 
 async function adminDeleteServer(id) {
-  if (!confirm('Supprimer ce serveur ?')) return;
-  showToast('Serveur supprim\u00e9');
-  refreshAdminServers();
+  if (!confirm('Supprimer ce serveur et tous ses messages ?')) return;
+  try {
+    const r = await fetch(`/api/admin/servers/${id}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Erreur'); return; }
+    showToast('Serveur supprim\u00e9');
+    refreshAdminServers();
+  } catch { showToast('Erreur r\u00e9seau'); }
+}
+
+async function adminClearGlobal() {
+  if (!confirm('Vider TOUS les messages du g\u00e9n\u00e9ral ? Action irr\u00e9versible.')) return;
+  try {
+    const r = await fetch('/api/admin/clear-global', { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Erreur'); return; }
+    showToast('Messages du g\u00e9n\u00e9ral supprim\u00e9s');
+  } catch { showToast('Erreur r\u00e9seau'); }
 }
 
 // ── PARALLAX LOGIN ───────────────────────────────────────────

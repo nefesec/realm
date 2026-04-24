@@ -921,6 +921,47 @@ app.post('/api/admin/role', requireAdmin, (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Erreur serveur.' }); }
 });
 
+// Delete server (admin)
+app.delete('/api/admin/servers/:id', requireAdmin, (req, res) => {
+  const serverId = parseInt(req.params.id);
+  if (!Number.isInteger(serverId)) return res.status(400).json({ error: 'ID invalide.' });
+  try {
+    const srv = db.prepare('SELECT id FROM servers WHERE id = ?').get(serverId);
+    if (!srv) return res.status(404).json({ error: 'Serveur introuvable.' });
+    // Cleanup orphaned rows not covered by CASCADE
+    const channelIds = db.prepare('SELECT id FROM channels WHERE server_id = ?').all(serverId).map(r => r.id);
+    const msgIds = db.prepare('SELECT id FROM server_messages WHERE server_id = ?').all(serverId).map(r => r.id);
+    if (msgIds.length) {
+      const ph = msgIds.map(() => '?').join(',');
+      db.prepare(`DELETE FROM attachments WHERE message_id IN (${ph}) AND message_type = 'server'`).run(...msgIds);
+      db.prepare(`DELETE FROM reactions   WHERE message_id IN (${ph}) AND message_type = 'server'`).run(...msgIds);
+      db.prepare(`DELETE FROM mentions    WHERE message_id IN (${ph}) AND message_type = 'server'`).run(...msgIds);
+    }
+    db.prepare("DELETE FROM read_positions WHERE context LIKE ?").run(`server:${serverId}%`);
+    // CASCADE handles: channels, server_members, server_messages, server_invites
+    db.prepare('DELETE FROM servers WHERE id = ?').run(serverId);
+    io.emit('server_deleted', { serverId });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Erreur serveur.' }); }
+});
+
+// Clear all global messages (admin)
+app.post('/api/admin/clear-global', requireAdmin, (_, res) => {
+  try {
+    const msgIds = db.prepare('SELECT id FROM messages').all().map(r => r.id);
+    if (msgIds.length) {
+      const ph = msgIds.map(() => '?').join(',');
+      db.prepare(`DELETE FROM attachments WHERE message_id IN (${ph}) AND message_type = 'global'`).run(...msgIds);
+      db.prepare(`DELETE FROM reactions   WHERE message_id IN (${ph}) AND message_type = 'global'`).run(...msgIds);
+      db.prepare(`DELETE FROM mentions    WHERE message_id IN (${ph}) AND message_type = 'global'`).run(...msgIds);
+    }
+    db.prepare('DELETE FROM messages').run();
+    db.prepare("DELETE FROM read_positions WHERE context = 'global'").run();
+    io.emit('global_cleared');
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Erreur serveur.' }); }
+});
+
 // Backup endpoint
 app.post('/api/admin/backup', requireAdmin, (_, res) => {
   try {

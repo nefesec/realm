@@ -3,10 +3,11 @@
   "appName": "Realm",
   "webDir": "www",
   "server": {
-    "cleartext": true,
-    "allowNavigation": ["*"]
+    "url": "https://naoufel-thinkcentre-m700.tailf9bf1b.ts.net",
+    "cleartext": false,
+    "allowNavigation": ["naoufel-thinkcentre-m700.tailf9bf1b.ts.net"]
   },
   "android": {
-    "allowMixedContent": true
+    "allowMixedContent": false
   }
 }
