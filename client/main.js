@@ -6,28 +6,36 @@ const { spawn } = require('child_process');
 // Ignore self-signed cert for localhost on all platforms (needed for electron-updater)
 app.commandLine.appendSwitch('ignore-certificate-errors');
 
-// Linux: enable media device access
+const _R = Buffer.from('aHR0cHM6Ly9uYW91ZmVsLXRoaW5rY2VudHJlLW03MDAudGFpbGY5YmYxYi50cy5uZXQ=', 'base64').toString();
+const PORT = process.env.PORT || 3002;
+
 if (process.platform === 'linux') {
   app.disableHardwareAcceleration(); // prevent black screen on Linux (GPU process crash)
   app.commandLine.appendSwitch('enable-features', 'AudioContextAutoplayByUserActivation,WebRTCPipeWireCapturer');
   app.commandLine.appendSwitch('disable-features', 'AudioServiceSandbox,AudioServiceOutOfProcess');
   app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
   app.commandLine.appendSwitch('disable-setuid-sandbox');
+} else if (process.platform === 'win32') {
+  // Sur Windows le serveur tourne sur la machine de Naoufel → on pointe sur l'URL Tailscale
+  app.commandLine.appendSwitch('disable-gpu');
+  app.commandLine.appendSwitch('disable-gpu-sandbox');
+  app.commandLine.appendSwitch('disable-software-rasterizer');
 }
+
 const http = require('http');
 
 // Ensure Chromium can find the PulseAudio/PipeWire socket
-if (!process.env.PULSE_SERVER) {
+if (process.platform === 'linux' && !process.env.PULSE_SERVER) {
   const uid = require('os').userInfo().uid;
   process.env.PULSE_SERVER = `unix:/run/user/${uid}/pulse/native`;
 }
 
 const fs = require('fs');
-const PORT = process.env.PORT || 3002;
-// Toujours HTTPS — le serveur n'écoute qu'en HTTPS
-const SERVER_URL = `https://localhost:${PORT}`;
-// Tailscale funnel — encodé pour ne pas être lisible au premier coup d'œil
-const _R = Buffer.from('aHR0cHM6Ly9uYW91ZmVsLXRoaW5rY2VudHJlLW03MDAudGFpbGY5YmYxYi50cy5uZXQ=', 'base64').toString();
+
+// Sur Linux (machine serveur) : localhost. Sur Windows/autre : URL Tailscale avec port
+const SERVER_URL = process.platform === 'linux'
+  ? `https://localhost:${PORT}`
+  : `${_R}:${PORT}`;
 
 // ── EMBEDDED SERVER ──────────────────────────────────────────
 let serverProc = null;
@@ -51,7 +59,8 @@ function startServer() {
 
 app.on('before-quit', () => { if (serverProc) serverProc.kill(); });
 
-startServer();
+// Ne tenter de spawner le serveur local que sur Linux (machine hôte)
+if (process.platform === 'linux') startServer();
 
 // ── INSTANCE UNIQUE ──────────────────────────────────────────
 const gotLock = app.requestSingleInstanceLock();
